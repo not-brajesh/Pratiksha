@@ -5,6 +5,7 @@
 #include <cstring>
 #include <cstdlib>
 #include <cerrno>
+#include <csignal>
 
 #include <unistd.h>
 #include <sys/types.h>
@@ -128,7 +129,7 @@ bool sendAll(int clientSocket, const string& response) {
     size_t totalSent = 0;
 
     while (totalSent < response.size()) {
-        ssize_t sent = send(
+        ssize_t sent = ::send(
             clientSocket,
             response.data() + totalSent,
             response.size() - totalSent,
@@ -162,7 +163,7 @@ string readRequest(int clientSocket) {
     char buffer[4096];
 
     while (request.size() < Config::MAX_REQUEST_SIZE) {
-        ssize_t bytesRead = recv(
+        ssize_t bytesRead = ::recv(
             clientSocket,
             buffer,
             sizeof(buffer),
@@ -433,7 +434,7 @@ void handleClient(
 // ------------------------------------------------------------
 
 int createServerSocket() {
-    int serverSocket = socket(
+    int serverSocket = ::socket(
         AF_INET,
         SOCK_STREAM,
         0
@@ -448,7 +449,7 @@ int createServerSocket() {
 
     int reuseAddress = 1;
 
-    if (setsockopt(
+    if (::setsockopt(
             serverSocket,
             SOL_SOCKET,
             SO_REUSEADDR,
@@ -472,7 +473,9 @@ int createServerSocket() {
     serverAddress.sin_addr.s_addr =
         htonl(INADDR_LOOPBACK);
 
-    if (bind(
+    // 🔴 FIX: use ::bind (global POSIX bind),
+    // not std::bind from `using namespace std;`
+    if (::bind(
             serverSocket,
             reinterpret_cast<sockaddr*>(&serverAddress),
             sizeof(serverAddress)
@@ -485,7 +488,7 @@ int createServerSocket() {
         return -1;
     }
 
-    if (listen(
+    if (::listen(
             serverSocket,
             Config::BACKLOG
         ) < 0) {
@@ -505,6 +508,10 @@ int createServerSocket() {
 // ------------------------------------------------------------
 
 int main() {
+    // Prevent crash if a client closes the connection early
+    // (SIGPIPE on broken socket writes).
+    signal(SIGPIPE, SIG_IGN);
+
     cout << endl;
     cout << "========================================" << endl;
     cout << "       PRATIKSHA HOSPITAL SYSTEM" << endl;
@@ -545,7 +552,7 @@ int main() {
         sockaddr_in clientAddress{};
         socklen_t clientLength = sizeof(clientAddress);
 
-        int clientSocket = accept(
+        int clientSocket = ::accept(
             serverSocket,
             reinterpret_cast<sockaddr*>(&clientAddress),
             &clientLength
