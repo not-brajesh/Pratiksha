@@ -22,16 +22,15 @@ using namespace std;
 
 // ============================================================
 // PRATIKSHA — Patient Routing & Intelligent Test Queue Handling
-// Backend v1.3
+// Backend v1.4
 //
-// Changes over v1.2:
-//   - Event-based simulation (no per-minute tick)
-//   - Global scheduler (scheduleStep) instead of per-centre greedy
-//   - Configurable MOVE_TIME_MINUTES between tests
-//   - Patient.currentCentre/currentTestId for real-state tracking
-//   - handleNextPatient atomically reserves assignment
-//   - handleCompleteTest validates centre assignment
-//   - /api/queue returns metrics (makespan, Σcompletion, Σwaiting)
+// Changes over v1.3:
+//   - computeQueue() now marks already-in-service patients as
+//     inService=true so they cannot be double-booked.      [STEP 1]
+//   - handleCompleteTest() uses strict assignment validation
+//     (patient must have an active centre + matching test). [STEP 2]
+//   - MOVE_TIME_MINUTES set to 3 (configurable).            [STEP 4]
+//   - Scheduling algorithm unchanged (global greedy step).  [STEP 3 pending]
 // ============================================================
 
 namespace Config {
@@ -41,10 +40,10 @@ namespace Config {
     constexpr int QUEUE_MAX_TIME = 5000;   // safety cap
     constexpr long INF_TIME = 1000000000L;
     constexpr double LAMBDA = 0.5;         // load-balance weight
-    constexpr int MOVE_TIME_MINUTES = 0;   // between tests; set >0 for hospital layout
+    constexpr int MOVE_TIME_MINUTES = 3;   // realistic hospital movement
 
     const string APP_NAME = "PRATIKSHA";
-    const string VERSION = "1.3.0";
+    const string VERSION = "1.4.0";
 }
 
 // ------------------------------------------------------------
@@ -419,7 +418,7 @@ bool matchPrefix(const string& path, const string& prefix, string& rest) {
 }
 
 // ------------------------------------------------------------
-// Simulation types (used only inside computeQueue / handleNextPatient)
+// Simulation types
 // ------------------------------------------------------------
 
 struct SimPatient {
@@ -441,7 +440,7 @@ struct SimCentre {
     string testId;
     int duration = 0;
     string currentPatient = "";
-    long busyUntil = 0;      // absolute sim-time when this centre frees
+    long busyUntil = 0;
     long busyMinutes = 0;
     int completedCount = 0;
 };
@@ -456,17 +455,6 @@ struct SimAssignment {
 
 // ------------------------------------------------------------
 // Scheduling core
-// ------------------------------------------------------------
-//
-// Two-tier priority (higher = pick first):
-//     base   = (currentTime + (maxSeq - addedSeq)) * 100     [age / fairness]
-//     emerg  = +1e12 if emergency
-//     short  = +1000 / duration                              [prefer shorter]
-//     load   = -LAMBDA * (waitingForTest / numCentresForTest) [spread contention]
-//
-// Global step: generates all eligible (patient, centre) pairs,
-// sorts by priority desc, greedily picks a matching (no
-// patient/centre reuse). Non-greedy exhaustive matching deferred.
 // ------------------------------------------------------------
 
 double computePriority(
@@ -588,6 +576,25 @@ QueueResult computeQueue(const ServerState& state) {
             sc.busyUntil = (c.remainingMin > 0 ? (long)c.remainingMin : (long)c.durationMinutes);
         }
         simC.push_back(sc);
+    }
+
+    // ============================================================
+    // STEP 1 — Mark patients already in service.
+    // A patient must not be assigned to another centre until
+    // their current test has completed.
+    // ============================================================
+    for (const auto& c : simC) {
+        if (c.currentPatient.empty()) {
+            continue;
+        }
+        for (auto& p : sim) {
+            if (p.id == c.currentPatient) {
+                p.inService = true;
+                p.currentCentreId = c.id;
+                p.readyAt = c.busyUntil;
+                break;
+            }
+        }
     }
 
     long time = 0;
@@ -886,7 +893,6 @@ string handleNextPatient(ServerState& st, const string& centreId) {
     if (!centre) return errorResponse(404, "Not Found", "Centre not found");
     if (!centre->available()) return errorResponse(409, "Conflict", "Centre is currently busy");
 
-    // Snapshot current state into a mini-sim so the global scheduler decides
     long maxSeq = st.nextSeq > 0 ? st.nextSeq - 1 : 0;
 
     vector<SimPatient> sim;
@@ -971,40 +977,77 @@ string handleCompleteTest(ServerState& st, const string& body) {
         return errorResponse(409, "Conflict",
             "Test is not pending (already completed or unknown)");
 
-    // ---- Validation: centre consistency ----
-    string actualCentre = p->currentCentre;
-    if (!centreId.empty()) {
-        TestingCentre* c = st.findCentre(centreId);
-        if (!c) return errorResponse(404, "Not Found", "Centre not found");
+    // ============================================================
+    // STEP 2 — Strict assignment validation.
+    // Rules enforced:
+    //   A. Patient must have an active centre assignment.
+    //   B. Patient's active test must match the completed test.
+    //   C. Centre provided in request (if any) must match assignment.
+    //   D. Centre must still be serving this patient.
+    //   E. Centre's configured test and its current test must match.
+    // ============================================================
 
-        if (!actualCentre.empty() && actualCentre != centreId) {
-            return errorResponse(409, "Conflict",
-                "Patient is assigned to centre " + actualCentre +
-                ", not " + centreId);
-        }
-        if (!c->currentPatient.empty() && c->currentPatient != patientId) {
-            return errorResponse(409, "Conflict",
-                "Centre " + centreId + " is serving a different patient");
-        }
-    } else if (!actualCentre.empty()) {
-        centreId = actualCentre;  // default to assignment
+    if (p->currentCentre.empty()) {
+        return errorResponse(
+            409,
+            "Conflict",
+            "Patient is not assigned to an active testing centre"
+        );
     }
 
-    // ---- Apply completion ----
+    if (p->currentTestId != testId) {
+        return errorResponse(
+            409,
+            "Conflict",
+            "Requested test does not match the patient's active test"
+        );
+    }
+
+    if (!centreId.empty() && centreId != p->currentCentre) {
+        return errorResponse(
+            409,
+            "Conflict",
+            "Patient is assigned to a different centre"
+        );
+    }
+
+    centreId = p->currentCentre;
+
+    TestingCentre* assignedCentre = st.findCentre(centreId);
+
+    if (!assignedCentre) {
+        return errorResponse(
+            404,
+            "Not Found",
+            "Assigned testing centre not found"
+        );
+    }
+
+    if (assignedCentre->currentPatient != patientId) {
+        return errorResponse(
+            409,
+            "Conflict",
+            "Centre is not serving this patient"
+        );
+    }
+
+    if (assignedCentre->currentTestId != testId ||
+        assignedCentre->testId != testId) {
+        return errorResponse(
+            409,
+            "Conflict",
+            "Test does not match the centre assignment"
+        );
+    }
+
+    // ---- Apply completion (validation passed) ----
     ts->status = TestStatus::COMPLETED;
 
-    if (!centreId.empty()) {
-        TestingCentre* c = st.findCentre(centreId);
-        if (c) {
-            if (c->currentPatient == patientId) {
-                c->currentPatient = "";
-                c->currentTestId = "";
-                c->remainingMin = 0;
-            }
-            c->completedCount++;
-            c->busyMinutes += c->durationMinutes;
-        }
-    }
+    assignedCentre->currentPatient = "";
+    assignedCentre->currentTestId = "";
+    assignedCentre->remainingMin = 0;
+    assignedCentre->completedCount++;
+    assignedCentre->busyMinutes += assignedCentre->durationMinutes;
 
     p->currentCentre = "";
     p->currentTestId = "";
