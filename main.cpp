@@ -13,7 +13,7 @@
 #include <climits>
 #include <chrono>
 #include <cmath>
-
+#include <cstdlib>
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/socket.h>
