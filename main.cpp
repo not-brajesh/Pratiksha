@@ -20,21 +20,18 @@
 using namespace std;
 
 // ============================================================
-// PRATIKSHA
-// Patient Routing & Intelligent Test Queue Handling System
-// Backend v1.1 — adds Patient API + Smart Queue
-// ============================================================
+// PRATIKSHA — Patient Routing & Intelligent Test Queue Handling
+// Backend v1.2
 //
-// API Endpoints:
-//   GET    /                     -> index.html
-//   GET    /api/health           -> health check
-//   GET    /api/tests            -> list diagnostic tests
-//   GET    /api/centres          -> list test centres (static)
-//   GET    /api/patients         -> list queued patients
-//   POST   /api/patients         -> add patient {id,name,tests[]}
-//   DELETE /api/patients/{id}    -> remove patient
-//   GET    /api/queue            -> compute + return queue
-//   POST   /api/queue/reset      -> clear all patients
+// Adds over v1.1:
+//   - Per-test status tracking (WAITING / COMPLETED)
+//   - arrivalTime, emergency flag on Patient
+//   - Real TestingCentre model (id, testId, availability, busy state)
+//   - Multiple centres per test type supported
+//   - GET  /api/centres/{id}/next    -> next eligible patient
+//   - POST /api/tests/complete       -> mark a test done
+//   - POST /api/patients accepts optional "emergency" bool
+//   - Sequence scoring in queue simulation (Config::LAMBDA)
 // ============================================================
 
 namespace Config {
@@ -42,14 +39,18 @@ namespace Config {
     constexpr int BACKLOG = 10;
     constexpr size_t MAX_REQUEST_SIZE = 32768;
     constexpr int QUEUE_MAX_TIME = 5000;   // safety cap for simulation
+    constexpr double LAMBDA = 0.5;         // balance between wait & load
 
     const string APP_NAME = "PRATIKSHA";
-    const string VERSION = "1.1.0";
+    const string VERSION = "1.2.0";
 }
 
 // ------------------------------------------------------------
 // Models
 // ------------------------------------------------------------
+
+enum class TestStatus { WAITING, COMPLETED };
+enum class PatientStatus { WAITING, COMPLETED };
 
 struct DiagnosticTest {
     string id;
@@ -57,11 +58,34 @@ struct DiagnosticTest {
     int durationMinutes;
 };
 
+struct PatientTestState {
+    string testId;
+    TestStatus status = TestStatus::WAITING;
+    long completedAt = -1;
+};
+
 struct Patient {
     string id;
     string name;
-    vector<string> tests;   // test IDs (unique, validated)
-    long addedSeq;
+    vector<PatientTestState> testStates;
+    long addedSeq = 0;
+    long arrivalTime = 0;
+    PatientStatus status = PatientStatus::WAITING;
+    bool emergency = false;
+};
+
+struct TestingCentre {
+    string id;
+    string name;
+    string testId;
+    int durationMinutes = 0;
+    string currentPatient = "";
+    string currentTestId = "";
+    int remainingMin = 0;
+    long busyMinutes = 0;
+    int completedCount = 0;
+
+    bool available() const { return currentPatient.empty(); }
 };
 
 struct QueueStep {
@@ -81,9 +105,7 @@ struct CentreState {
     string id;
     string name;
     int duration;
-    string currentPatient;   // empty if free
-    int remainingMin;
-    int busyMinutes;
+    long busyMinutes;
     int completedCount;
 };
 
@@ -95,89 +117,118 @@ struct QueueResult {
 };
 
 // ------------------------------------------------------------
-// Test Repository
-// ------------------------------------------------------------
-
-class TestRepository {
-private:
-    vector<DiagnosticTest> tests;
-
-public:
-    TestRepository() {
-        tests.push_back({"A", "X-Ray", 10});
-        tests.push_back({"B", "Blood Test", 5});
-        tests.push_back({"C", "Ultrasound", 20});
-        tests.push_back({"D", "CT Scan", 30});
-    }
-
-    const vector<DiagnosticTest>& getAll() const {
-        return tests;
-    }
-
-    bool exists(const string& id) const {
-        for (const auto& t : tests) {
-            if (t.id == id) return true;
-        }
-        return false;
-    }
-
-    const DiagnosticTest* find(const string& id) const {
-        for (const auto& t : tests) {
-            if (t.id == id) return &t;
-        }
-        return nullptr;
-    }
-};
-
-// ------------------------------------------------------------
 // Server State
 // ------------------------------------------------------------
 
 class ServerState {
 public:
-    TestRepository testRepository;
+    vector<DiagnosticTest> tests;
+    vector<TestingCentre> centres;
     vector<Patient> patients;
     long nextSeq = 0;
 
-    bool hasPatient(const string& id) const {
-        for (const auto& p : patients) {
-            if (p.id == id) return true;
-        }
-        return false;
+    ServerState() {
+        tests = {
+            {"A", "X-Ray", 10},
+            {"B", "Blood Test", 5},
+            {"C", "Ultrasound", 20},
+            {"D", "CT Scan", 30}
+        };
+        centres = {
+            {"A1", "X-Ray Room 1", "A", 10},
+            {"A2", "X-Ray Room 2", "A", 10},
+            {"B1", "Blood Test Lab", "B", 5},
+            {"C1", "Ultrasound Room", "C", 20},
+            {"D1", "CT Scan Room", "D", 30}
+        };
     }
 
-    bool addPatient(const string& id, const string& name, const vector<string>& tests) {
-        if (id.empty()) return false;
-        if (hasPatient(id)) return false;
+    // ---- Test helpers ----
+    bool testExists(const string& id) const {
+        for (const auto& t : tests) if (t.id == id) return true;
+        return false;
+    }
+    int testDuration(const string& id) const {
+        for (const auto& t : tests) if (t.id == id) return t.durationMinutes;
+        return 0;
+    }
+    string testName(const string& id) const {
+        for (const auto& t : tests) if (t.id == id) return t.name;
+        return id;
+    }
 
-        // Validate + dedupe tests
-        vector<string> uniqueTests;
+    // ---- Centre helpers ----
+    TestingCentre* findCentre(const string& id) {
+        for (auto& c : centres) if (c.id == id) return &c;
+        return nullptr;
+    }
+    const TestingCentre* findCentre(const string& id) const {
+        for (const auto& c : centres) if (c.id == id) return &c;
+        return nullptr;
+    }
+
+    // ---- Patient helpers ----
+    bool hasPatient(const string& id) const {
+        for (const auto& p : patients) if (p.id == id) return true;
+        return false;
+    }
+    Patient* findPatient(const string& id) {
+        for (auto& p : patients) if (p.id == id) return &p;
+        return nullptr;
+    }
+
+    bool addPatient(
+        const string& id,
+        const string& name,
+        const vector<string>& rawTests,
+        bool emergency
+    ) {
+        if (id.empty() || hasPatient(id)) return false;
+
+        // Validate + dedupe
+        vector<string> unique;
         set<string> seen;
-        for (const auto& t : tests) {
-            if (!testRepository.exists(t)) return false;
+        for (const auto& t : rawTests) {
+            if (!testExists(t)) return false;
             if (seen.count(t)) continue;
             seen.insert(t);
-            uniqueTests.push_back(t);
+            unique.push_back(t);
         }
+        if (unique.empty()) return false;
 
-        if (uniqueTests.empty()) return false;
-
-        patients.push_back({
-            id,
-            name,
-            uniqueTests,
-            nextSeq++
-        });
+        Patient p;
+        p.id = id;
+        p.name = name;
+        p.addedSeq = nextSeq++;
+        p.arrivalTime = p.addedSeq;
+        p.status = PatientStatus::WAITING;
+        p.emergency = emergency;
+        for (const auto& t : unique) {
+            PatientTestState ts;
+            ts.testId = t;
+            ts.status = TestStatus::WAITING;
+            ts.completedAt = -1;
+            p.testStates.push_back(ts);
+        }
+        patients.push_back(p);
         return true;
     }
 
     bool removePatient(const string& id) {
         for (size_t i = 0; i < patients.size(); ++i) {
             if (patients[i].id == id) {
+                // Free any centre currently serving this patient
+                for (auto& c : centres) {
+                    if (c.currentPatient == id) {
+                        c.currentPatient = "";
+                        c.currentTestId = "";
+                        c.remainingMin = 0;
+                    }
+                }
                 patients.erase(patients.begin() + i);
-                // Re-index seq to keep ordering stable
                 for (size_t j = 0; j < patients.size(); ++j) {
                     patients[j].addedSeq = (long)j;
+                    patients[j].arrivalTime = (long)j;
                 }
                 return true;
             }
@@ -188,6 +239,13 @@ public:
     void reset() {
         patients.clear();
         nextSeq = 0;
+        for (auto& c : centres) {
+            c.currentPatient = "";
+            c.currentTestId = "";
+            c.remainingMin = 0;
+            c.busyMinutes = 0;
+            c.completedCount = 0;
+        }
     }
 };
 
@@ -211,8 +269,6 @@ string escapeJson(const string& s) {
     return out.str();
 }
 
-// Very small, purpose-built parser for flat request bodies.
-// Handles:  {"id":"P1","name":"Amit","tests":["A","B"]}
 string jsonGetString(const string& json, const string& key) {
     string needle = "\"" + key + "\"";
     size_t pos = json.find(needle);
@@ -235,7 +291,6 @@ vector<string> jsonGetStringArray(const string& json, const string& key) {
     if (pos == string::npos) return out;
     size_t end = json.find(']', pos);
     if (end == string::npos) return out;
-
     string arr = json.substr(pos + 1, end - pos - 1);
     size_t p = 0;
     while ((p = arr.find('"', p)) != string::npos) {
@@ -247,125 +302,101 @@ vector<string> jsonGetStringArray(const string& json, const string& key) {
     return out;
 }
 
+bool jsonGetBool(const string& json, const string& key) {
+    string needle = "\"" + key + "\"";
+    size_t pos = json.find(needle);
+    if (pos == string::npos) return false;
+    pos = json.find(':', pos + needle.size());
+    if (pos == string::npos) return false;
+    pos++;
+    while (pos < json.size() && isspace((unsigned char)json[pos])) pos++;
+    return json.compare(pos, 4, "true") == 0;
+}
+
 // ------------------------------------------------------------
 // HTTP Response Helpers
 // ------------------------------------------------------------
 
 string makeResponse(
-    int statusCode,
-    const string& statusText,
-    const string& contentType,
-    const string& body
+    int statusCode, const string& statusText,
+    const string& contentType, const string& body
 ) {
-    ostringstream response;
-    response
-        << "HTTP/1.1 " << statusCode << " " << statusText << "\r\n"
-        << "Content-Type: " << contentType << "\r\n"
-        << "Content-Length: " << body.size() << "\r\n"
-        << "Connection: close\r\n"
-        << "Cache-Control: no-store\r\n"
-        << "X-Content-Type-Options: nosniff\r\n"
-        << "\r\n"
-        << body;
-    return response.str();
+    ostringstream r;
+    r << "HTTP/1.1 " << statusCode << " " << statusText << "\r\n"
+      << "Content-Type: " << contentType << "\r\n"
+      << "Content-Length: " << body.size() << "\r\n"
+      << "Connection: close\r\n"
+      << "Cache-Control: no-store\r\n"
+      << "X-Content-Type-Options: nosniff\r\n"
+      << "\r\n" << body;
+    return r.str();
 }
 
-string jsonResponse(int statusCode, const string& statusText, const string& json) {
-    return makeResponse(
-        statusCode, statusText,
-        "application/json; charset=utf-8",
-        json
-    );
+string jsonResponse(int code, const string& text, const string& json) {
+    return makeResponse(code, text, "application/json; charset=utf-8", json);
 }
 
-string errorResponse(int statusCode, const string& statusText, const string& message) {
-    string body =
-        "{\"success\":false,\"error\":\"" + escapeJson(message) + "\"}";
-    return jsonResponse(statusCode, statusText, body);
+string errorResponse(int code, const string& text, const string& msg) {
+    return jsonResponse(code, text,
+        "{\"success\":false,\"error\":\"" + escapeJson(msg) + "\"}");
 }
 
 // ------------------------------------------------------------
-// Send Complete HTTP Response
+// Send / Read
 // ------------------------------------------------------------
 
-bool sendAll(int clientSocket, const string& response) {
-    size_t totalSent = 0;
-    while (totalSent < response.size()) {
-        ssize_t sent = ::send(
-            clientSocket,
-            response.data() + totalSent,
-            response.size() - totalSent,
-            0
-        );
-        if (sent < 0) {
-            if (errno == EINTR) continue;
-            return false;
-        }
-        if (sent == 0) return false;
-        totalSent += static_cast<size_t>(sent);
+bool sendAll(int sock, const string& response) {
+    size_t sent = 0;
+    while (sent < response.size()) {
+        ssize_t n = ::send(sock, response.data() + sent, response.size() - sent, 0);
+        if (n < 0) { if (errno == EINTR) continue; return false; }
+        if (n == 0) return false;
+        sent += (size_t)n;
     }
     return true;
 }
-
-// ------------------------------------------------------------
-// Read HTTP Request (now supports POST bodies)
-// ------------------------------------------------------------
 
 long parseContentLength(const string& headers) {
     size_t pos = 0;
     while ((pos = headers.find("Content-Length:", pos)) != string::npos) {
         bool lineStart = (pos == 0) || (headers[pos - 1] == '\n');
         if (lineStart) {
-            size_t valStart = pos + 15;
-            size_t valEnd = headers.find("\r\n", valStart);
-            if (valEnd == string::npos) valEnd = headers.size();
-            string valStr = headers.substr(valStart, valEnd - valStart);
-            while (!valStr.empty() && isspace((unsigned char)valStr.front())) valStr.erase(0, 1);
-            while (!valStr.empty() && isspace((unsigned char)valStr.back()))  valStr.pop_back();
-            try { return stol(valStr); } catch (...) { return -1; }
+            size_t vs = pos + 15;
+            size_t ve = headers.find("\r\n", vs);
+            if (ve == string::npos) ve = headers.size();
+            string v = headers.substr(vs, ve - vs);
+            while (!v.empty() && isspace((unsigned char)v.front())) v.erase(0, 1);
+            while (!v.empty() && isspace((unsigned char)v.back()))  v.pop_back();
+            try { return stol(v); } catch (...) { return -1; }
         }
         pos++;
     }
     return -1;
 }
 
-string readRequest(int clientSocket) {
-    string request;
-    char buffer[4096];
+string readRequest(int sock) {
+    string req;
+    char buf[4096];
     size_t headerEnd = string::npos;
     long contentLength = -1;
 
-    while (request.size() < Config::MAX_REQUEST_SIZE) {
+    while (req.size() < Config::MAX_REQUEST_SIZE) {
         if (headerEnd != string::npos) {
-            size_t bodyStart = headerEnd + 4;
-            size_t bodyReceived = request.size() > bodyStart
-                ? request.size() - bodyStart : 0;
-            if (contentLength <= 0 ||
-                bodyReceived >= static_cast<size_t>(contentLength)) {
-                break;
-            }
+            size_t bs = headerEnd + 4;
+            size_t br = req.size() > bs ? req.size() - bs : 0;
+            if (contentLength <= 0 || br >= (size_t)contentLength) break;
         }
-
-        ssize_t bytesRead = ::recv(clientSocket, buffer, sizeof(buffer), 0);
-        if (bytesRead < 0) {
-            if (errno == EINTR) continue;
-            return "";
-        }
-        if (bytesRead == 0) break;
-
-        request.append(buffer, static_cast<size_t>(bytesRead));
-
+        ssize_t n = ::recv(sock, buf, sizeof(buf), 0);
+        if (n < 0) { if (errno == EINTR) continue; return ""; }
+        if (n == 0) break;
+        req.append(buf, (size_t)n);
         if (headerEnd == string::npos) {
-            headerEnd = request.find("\r\n\r\n");
-            if (headerEnd != string::npos) {
-                contentLength = parseContentLength(
-                    request.substr(0, headerEnd)
-                );
-            }
+            headerEnd = req.find("\r\n\r\n");
+            if (headerEnd != string::npos)
+                contentLength = parseContentLength(req.substr(0, headerEnd));
         }
     }
-
-    return request;
+    return req;
 }
 
 // ------------------------------------------------------------
@@ -373,573 +404,626 @@ string readRequest(int clientSocket) {
 // ------------------------------------------------------------
 
 struct HttpRequest {
-    string method;
-    string path;
-    string version;
-    string headers;
-    string body;
+    string method, path, version, headers, body;
 };
 
-bool parseRequestLine(const string& request, HttpRequest& parsed) {
-    size_t lineEnd = request.find("\r\n");
-    if (lineEnd == string::npos) return false;
-
-    string firstLine = request.substr(0, lineEnd);
-    istringstream input(firstLine);
-    if (!(input >> parsed.method >> parsed.path >> parsed.version)) return false;
-
+bool parseRequestLine(const string& req, HttpRequest& parsed) {
+    size_t le = req.find("\r\n");
+    if (le == string::npos) return false;
+    string first = req.substr(0, le);
+    istringstream in(first);
+    if (!(in >> parsed.method >> parsed.path >> parsed.version)) return false;
     string extra;
-    if (input >> extra) return false;
-
-    if (parsed.version != "HTTP/1.1" &&
-        parsed.version != "HTTP/1.0") return false;
-
-    // Split headers/body
-    size_t headerEnd = request.find("\r\n\r\n");
-    if (headerEnd != string::npos) {
-        parsed.headers = request.substr(lineEnd + 2, headerEnd - (lineEnd + 2));
-        parsed.body = request.substr(headerEnd + 4);
+    if (in >> extra) return false;
+    if (parsed.version != "HTTP/1.1" && parsed.version != "HTTP/1.0") return false;
+    size_t he = req.find("\r\n\r\n");
+    if (he != string::npos) {
+        parsed.headers = req.substr(le + 2, he - (le + 2));
+        parsed.body = req.substr(he + 4);
     }
-
     return true;
 }
 
-bool matchPrefix(const string& path, const string& prefix, string& remainder) {
+bool matchPrefix(const string& path, const string& prefix, string& rest) {
     if (path.size() > prefix.size() &&
         path.compare(0, prefix.size(), prefix) == 0) {
-        remainder = path.substr(prefix.size());
+        rest = path.substr(prefix.size());
         return true;
     }
     return false;
 }
 
 // ------------------------------------------------------------
-// Queue Algorithm
+// Queue Simulation (Sequence scoring per report)
+// ------------------------------------------------------------
+//
+// Simulation state is a COPY — it never modifies the real
+// patient/centre state. Real completion must be triggered by
+// POST /api/tests/complete.
+//
+// Patient-selection for a free centre (higher score = priority):
+//   wait = (maxSeq - addedSeq) + simTime
+//   emergency = +100000 (definitive override)
+//
+// Per-patient preferred sequence uses:
+//   score = CompletionTime + LAMBDA * LoadFactorSum   (lower = better)
+//   Currently we surface the SIMULATED sequence (post-hoc),
+//   which respects the same trade-off.
 // ------------------------------------------------------------
 
-QueueResult computeQueue(
-    const vector<Patient>& patients,
-    const TestRepository& repository
-) {
+QueueResult computeQueue(const ServerState& state) {
     QueueResult result;
 
-    // Snapshot patient working copies
-    struct WorkPatient {
+    struct SimPatient {
         string id;
         vector<string> remaining;
         long addedSeq;
+        bool emergency;
     };
-    vector<WorkPatient> work;
-    for (const auto& p : patients) {
-        work.push_back({p.id, p.tests, p.addedSeq});
-        result.perPatient[p.id] = {};
+    vector<SimPatient> sim;
+    long maxSeq = state.nextSeq > 0 ? state.nextSeq - 1 : 0;
+
+    for (const auto& p : state.patients) {
+        SimPatient sp;
+        sp.id = p.id;
+        sp.addedSeq = p.addedSeq;
+        sp.emergency = p.emergency;
+        for (const auto& ts : p.testStates) {
+            if (ts.status == TestStatus::WAITING)
+                sp.remaining.push_back(ts.testId);
+        }
+        if (!sp.remaining.empty()) {
+            sim.push_back(sp);
+            result.perPatient[p.id] = {};
+        }
     }
 
-    // Snapshot centres
-    for (const auto& t : repository.getAll()) {
-        CentreState c;
-        c.id = t.id;
-        c.name = t.name;
-        c.duration = t.durationMinutes;
-        c.currentPatient = "";
-        c.remainingMin = 0;
-        c.busyMinutes = 0;
-        c.completedCount = 0;
-        result.centres.push_back(c);
+    struct SimCentre {
+        string id;
+        string name;
+        string testId;
+        int duration;
+        string currentPatient;
+        int remainingMin;
+        long busyMinutes;
+        int completedCount;
+    };
+    vector<SimCentre> simC;
+
+    for (const auto& c : state.centres) {
+        SimCentre sc;
+        sc.id = c.id;
+        sc.name = c.name;
+        sc.testId = c.testId;
+        sc.duration = c.durationMinutes;
+        sc.currentPatient = c.currentPatient;
+        sc.remainingMin = c.remainingMin;
+        sc.busyMinutes = c.busyMinutes;
+        sc.completedCount = c.completedCount;
+        simC.push_back(sc);
     }
 
-    int time = 0;
+    long time = 0;
     while (time < Config::QUEUE_MAX_TIME) {
-        // ---- 1) Process completions ----
-        for (auto& c : result.centres) {
+        // 1) Completions
+        for (auto& c : simC) {
             if (!c.currentPatient.empty() && c.remainingMin <= 0) {
-                for (auto& p : work) {
-                    if (p.id == c.currentPatient) {
-                        auto it = std::find(
-                            p.remaining.begin(), p.remaining.end(), c.id
-                        );
-                        if (it != p.remaining.end()) {
-                            p.remaining.erase(it);
-                        }
+                for (auto& s : sim) {
+                    if (s.id == c.currentPatient) {
+                        auto it = std::find(s.remaining.begin(),
+                                            s.remaining.end(), c.testId);
+                        if (it != s.remaining.end()) s.remaining.erase(it);
                         break;
                     }
                 }
-                result.events.push_back({
-                    time, "complete", c.id, c.currentPatient
-                });
+                result.events.push_back({(int)time, "complete", c.id, c.currentPatient});
                 c.completedCount++;
                 c.currentPatient = "";
+                c.remainingMin = 0;
             }
         }
 
-        // ---- 2) All done? ----
+        // 2) All done?
         bool allDone = true;
-        for (const auto& p : work) {
-            if (!p.remaining.empty()) { allDone = false; break; }
+        for (const auto& s : sim) {
+            if (!s.remaining.empty()) { allDone = false; break; }
         }
         if (allDone) break;
 
-        // ---- 3) Assign free centres ----
-        set<string> busyPatients;
-        for (const auto& c : result.centres) {
-            if (!c.currentPatient.empty()) busyPatients.insert(c.currentPatient);
-        }
+        // 3) Assignments
+        set<string> busy;
+        for (const auto& c : simC)
+            if (!c.currentPatient.empty()) busy.insert(c.currentPatient);
 
-        for (auto& c : result.centres) {
+        for (auto& c : simC) {
             if (!c.currentPatient.empty()) continue;
 
-            // Eligible = patient needs this test + not already busy
-            vector<WorkPatient*> eligible;
-            for (auto& p : work) {
-                if (busyPatients.count(p.id)) continue;
-                if (std::find(p.remaining.begin(),
-                              p.remaining.end(),
-                              c.id) == p.remaining.end()) continue;
-                eligible.push_back(&p);
+            vector<SimPatient*> eligible;
+            for (auto& s : sim) {
+                if (busy.count(s.id)) continue;
+                if (std::find(s.remaining.begin(), s.remaining.end(),
+                              c.testId) != s.remaining.end()) {
+                    eligible.push_back(&s);
+                }
             }
-
             if (eligible.empty()) continue;
 
-            // Priority: waitingMinutes + testDuration (higher = better)
-            auto score = [&](const WorkPatient* p) {
-                long wait = time - p->addedSeq;   // addedSeq used as arrival slot
+            SimPatient* chosen = nullptr;
+            double best = -1e18;
+            for (auto* s : eligible) {
+                long wait = (maxSeq - s->addedSeq) + time;
                 if (wait < 0) wait = 0;
-                return wait + c.duration;
-            };
-            std::stable_sort(eligible.begin(), eligible.end(),
-                [&](const WorkPatient* a, const WorkPatient* b) {
-                    return score(a) > score(b);
-                });
+                double score = (double)wait;
+                if (s->emergency) score += 100000;
+                if (score > best) { best = score; chosen = s; }
+            }
+            if (!chosen) continue;
 
-            WorkPatient* chosen = eligible.front();
             c.currentPatient = chosen->id;
             c.remainingMin = c.duration;
-            busyPatients.insert(chosen->id);
+            busy.insert(chosen->id);
 
-            result.events.push_back({
-                time, "start", c.id, chosen->id
-            });
-            result.perPatient[chosen->id].push_back({
-                c.id, time, c.duration
-            });
+            result.events.push_back({(int)time, "start", c.id, chosen->id});
+            result.perPatient[chosen->id].push_back(
+                {c.testId, (int)time, c.duration}
+            );
         }
 
-        // ---- 4) Advance time by 1 minute ----
         time++;
-        for (auto& c : result.centres) {
-            if (c.remainingMin > 0) {
-                c.remainingMin--;
-                c.busyMinutes++;
-            }
+        for (auto& c : simC) {
+            if (c.remainingMin > 0) { c.remainingMin--; c.busyMinutes++; }
         }
     }
 
-    result.totalTime = time;
+    result.totalTime = (int)time;
+
+    for (const auto& sc : simC) {
+        CentreState cs;
+        cs.id = sc.id;
+        cs.name = sc.name;
+        cs.duration = sc.duration;
+        cs.busyMinutes = sc.busyMinutes;
+        cs.completedCount = sc.completedCount;
+        result.centres.push_back(cs);
+    }
+
     return result;
 }
 
 // ------------------------------------------------------------
-// API: Health Check
+// API Handlers
 // ------------------------------------------------------------
 
 string handleHealth() {
     return jsonResponse(200, "OK",
-        "{"
-            "\"success\":true,"
-            "\"application\":\"PRATIKSHA\","
-            "\"version\":\"1.1.0\","
-            "\"status\":\"running\","
-            "\"backend\":\"C++17\""
-        "}"
-    );
+        "{\"success\":true,\"application\":\"PRATIKSHA\","
+        "\"version\":\"" + Config::VERSION + "\","
+        "\"status\":\"running\",\"backend\":\"C++17\"}");
 }
 
-// ------------------------------------------------------------
-// API: Diagnostic Tests
-// ------------------------------------------------------------
-
-string handleTests(const TestRepository& repository) {
-    ostringstream json;
-    json << "{\"success\":true,\"tests\":[";
-    const auto& tests = repository.getAll();
-    for (size_t i = 0; i < tests.size(); ++i) {
-        if (i > 0) json << ",";
-        json
-            << "{"
-            << "\"id\":\"" << escapeJson(tests[i].id) << "\","
-            << "\"name\":\"" << escapeJson(tests[i].name) << "\","
-            << "\"durationMinutes\":" << tests[i].durationMinutes
-            << "}";
+string handleTests(const ServerState& st) {
+    ostringstream j;
+    j << "{\"success\":true,\"tests\":[";
+    for (size_t i = 0; i < st.tests.size(); ++i) {
+        if (i) j << ",";
+        j << "{\"id\":\"" << escapeJson(st.tests[i].id) << "\","
+          << "\"name\":\"" << escapeJson(st.tests[i].name) << "\","
+          << "\"durationMinutes\":" << st.tests[i].durationMinutes << "}";
     }
-    json << "]}";
-    return jsonResponse(200, "OK", json.str());
+    j << "]}";
+    return jsonResponse(200, "OK", j.str());
 }
 
-// ------------------------------------------------------------
-// API: Centres
-// ------------------------------------------------------------
-
-string handleCentres(const TestRepository& repository) {
-    ostringstream json;
-    json << "{\"success\":true,\"centres\":[";
-    const auto& tests = repository.getAll();
-    for (size_t i = 0; i < tests.size(); ++i) {
-        if (i > 0) json << ",";
-        json
-            << "{"
-            << "\"id\":\"" << escapeJson(tests[i].id) << "\","
-            << "\"name\":\"" << escapeJson(tests[i].name) << "\","
-            << "\"duration\":" << tests[i].durationMinutes
-            << "}";
+string handleCentres(const ServerState& st) {
+    ostringstream j;
+    j << "{\"success\":true,\"centres\":[";
+    for (size_t i = 0; i < st.centres.size(); ++i) {
+        const auto& c = st.centres[i];
+        if (i) j << ",";
+        j << "{"
+          << "\"id\":\"" << escapeJson(c.id) << "\","
+          << "\"name\":\"" << escapeJson(c.name) << "\","
+          << "\"testId\":\"" << escapeJson(c.testId) << "\","
+          << "\"duration\":" << c.durationMinutes << ","
+          << "\"durationMinutes\":" << c.durationMinutes << ","
+          << "\"available\":" << (c.available() ? "true" : "false") << ","
+          << "\"currentPatient\":"
+          << (c.currentPatient.empty() ? "null" : "\"" + escapeJson(c.currentPatient) + "\"")
+          << ","
+          << "\"completedCount\":" << c.completedCount
+          << "}";
     }
-    json << "]}";
-    return jsonResponse(200, "OK", json.str());
+    j << "]}";
+    return jsonResponse(200, "OK", j.str());
 }
 
-// ------------------------------------------------------------
-// API: Patients
-// ------------------------------------------------------------
-
-string handleListPatients(const ServerState& state) {
-    ostringstream json;
-    json << "{\"success\":true,\"patients\":[";
-    for (size_t i = 0; i < state.patients.size(); ++i) {
-        const auto& p = state.patients[i];
-        if (i > 0) json << ",";
-        json
-            << "{"
-            << "\"id\":\"" << escapeJson(p.id) << "\","
-            << "\"name\":\"" << escapeJson(p.name) << "\","
-            << "\"tests\":[";
-        for (size_t j = 0; j < p.tests.size(); ++j) {
-            if (j > 0) json << ",";
-            json << "\"" << escapeJson(p.tests[j]) << "\"";
+string handleListPatients(const ServerState& st) {
+    ostringstream j;
+    j << "{\"success\":true,\"patients\":[";
+    for (size_t i = 0; i < st.patients.size(); ++i) {
+        const auto& p = st.patients[i];
+        if (i) j << ",";
+        j << "{\"id\":\"" << escapeJson(p.id) << "\","
+          << "\"name\":\"" << escapeJson(p.name) << "\","
+          << "\"emergency\":" << (p.emergency ? "true" : "false") << ","
+          << "\"status\":\""
+          << (p.status == PatientStatus::WAITING ? "WAITING" : "COMPLETED")
+          << "\",\"tests\":[";
+        bool first = true;
+        for (const auto& ts : p.testStates) {
+            if (ts.status != TestStatus::WAITING) continue;
+            if (!first) j << ",";
+            first = false;
+            j << "\"" << escapeJson(ts.testId) << "\"";
         }
-        json << "]}";
+        j << "],\"testsStatus\":[";
+        for (size_t k = 0; k < p.testStates.size(); ++k) {
+            const auto& ts = p.testStates[k];
+            if (k) j << ",";
+            j << "{\"testId\":\"" << escapeJson(ts.testId) << "\","
+              << "\"status\":\""
+              << (ts.status == TestStatus::WAITING ? "WAITING" : "COMPLETED")
+              << "\"}";
+        }
+        j << "]}";
     }
-    json << "]}";
-    return jsonResponse(200, "OK", json.str());
+    j << "]}";
+    return jsonResponse(200, "OK", j.str());
 }
 
-string handleAddPatient(ServerState& state, const string& body) {
-    if (body.empty()) {
+string handleAddPatient(ServerState& st, const string& body) {
+    if (body.empty())
         return errorResponse(400, "Bad Request", "Request body is empty");
-    }
 
-    string id   = jsonGetString(body, "id");
+    string id = jsonGetString(body, "id");
     string name = jsonGetString(body, "name");
     vector<string> tests = jsonGetStringArray(body, "tests");
+    bool emergency = jsonGetBool(body, "emergency");
 
-    if (id.empty()) {
+    if (id.empty())
         return errorResponse(400, "Bad Request", "Patient 'id' is required");
-    }
-    if (tests.empty()) {
+    if (tests.empty())
         return errorResponse(400, "Bad Request", "At least one test is required");
-    }
 
-    // Validate tests
     for (const auto& t : tests) {
-        if (!state.testRepository.exists(t)) {
-            string msg = "Unknown test ID: " + t;
-            return errorResponse(400, "Bad Request", msg);
-        }
+        if (!st.testExists(t))
+            return errorResponse(400, "Bad Request", "Unknown test ID: " + t);
     }
 
-    if (!state.addPatient(id, name, tests)) {
-        if (state.hasPatient(id)) {
+    if (!st.addPatient(id, name, tests, emergency)) {
+        if (st.hasPatient(id))
             return errorResponse(409, "Conflict", "Patient ID already exists");
-        }
         return errorResponse(400, "Bad Request", "Could not add patient");
     }
 
-    // Echo back created patient
-    ostringstream json;
-    json
-        << "{\"success\":true,\"patient\":{"
-        << "\"id\":\"" << escapeJson(id) << "\","
-        << "\"name\":\"" << escapeJson(name) << "\","
-        << "\"tests\":[";
-    const auto& added = state.patients.back();
-    for (size_t j = 0; j < added.tests.size(); ++j) {
-        if (j > 0) json << ",";
-        json << "\"" << escapeJson(added.tests[j]) << "\"";
+    ostringstream j;
+    j << "{\"success\":true,\"patient\":{"
+      << "\"id\":\"" << escapeJson(id) << "\","
+      << "\"name\":\"" << escapeJson(name) << "\","
+      << "\"emergency\":" << (emergency ? "true" : "false") << ","
+      << "\"tests\":[";
+    bool first = true;
+    for (const auto& t : tests) {
+        if (!first) j << ",";
+        first = false;
+        j << "\"" << escapeJson(t) << "\"";
     }
-    json << "]}}";
-
-    return jsonResponse(201, "Created", json.str());
+    j << "]}}";
+    return jsonResponse(201, "Created", j.str());
 }
 
-string handleDeletePatient(ServerState& state, const string& id) {
-    if (id.empty()) {
+string handleDeletePatient(ServerState& st, const string& id) {
+    if (id.empty())
         return errorResponse(400, "Bad Request", "Patient ID is required");
-    }
-    if (!state.removePatient(id)) {
+    if (!st.removePatient(id))
         return errorResponse(404, "Not Found", "Patient not found");
-    }
-    ostringstream json;
-    json << "{\"success\":true,\"removed\":\"" << escapeJson(id) << "\"}";
-    return jsonResponse(200, "OK", json.str());
+    return jsonResponse(200, "OK",
+        "{\"success\":true,\"removed\":\"" + escapeJson(id) + "\"}");
 }
 
-// ------------------------------------------------------------
-// API: Queue
-// ------------------------------------------------------------
+string handleGetQueue(const ServerState& st) {
+    QueueResult r = computeQueue(st);
 
-string handleGetQueue(const ServerState& state) {
-    QueueResult result = computeQueue(state.patients, state.testRepository);
-
-    ostringstream json;
-    json << "{\"success\":true,";
-    json << "\"computed\":" << (state.patients.empty() ? "false" : "true") << ",";
-    json << "\"totalTime\":" << result.totalTime << ",";
+    ostringstream j;
+    j << "{\"success\":true,"
+      << "\"computed\":" << (st.patients.empty() ? "false" : "true") << ","
+      << "\"totalTime\":" << r.totalTime << ",";
 
     // Patients
-    json << "\"patients\":[";
-    for (size_t i = 0; i < state.patients.size(); ++i) {
-        const auto& p = state.patients[i];
-        if (i > 0) json << ",";
-        json
-            << "{"
-            << "\"id\":\"" << escapeJson(p.id) << "\","
-            << "\"name\":\"" << escapeJson(p.name) << "\""
-            << "}";
+    j << "\"patients\":[";
+    for (size_t i = 0; i < st.patients.size(); ++i) {
+        const auto& p = st.patients[i];
+        if (i) j << ",";
+        j << "{\"id\":\"" << escapeJson(p.id) << "\","
+          << "\"name\":\"" << escapeJson(p.name) << "\","
+          << "\"emergency\":" << (p.emergency ? "true" : "false") << "}";
     }
-    json << "],";
+    j << "],";
 
     // Centres
-    json << "\"centres\":[";
-    for (size_t i = 0; i < result.centres.size(); ++i) {
-        const auto& c = result.centres[i];
-        if (i > 0) json << ",";
-        int util = result.totalTime > 0
-            ? (int)((c.busyMinutes * 100.0) / result.totalTime)
-            : 0;
-        json
-            << "{"
-            << "\"id\":\"" << escapeJson(c.id) << "\","
-            << "\"name\":\"" << escapeJson(c.name) << "\","
-            << "\"duration\":" << c.duration << ","
-            << "\"busyMinutes\":" << c.busyMinutes << ","
-            << "\"completedCount\":" << c.completedCount << ","
-            << "\"utilization\":" << util
-            << "}";
+    j << "\"centres\":[";
+    for (size_t i = 0; i < r.centres.size(); ++i) {
+        const auto& c = r.centres[i];
+        if (i) j << ",";
+        int util = r.totalTime > 0
+            ? (int)((c.busyMinutes * 100.0) / r.totalTime) : 0;
+        j << "{\"id\":\"" << escapeJson(c.id) << "\","
+          << "\"name\":\"" << escapeJson(c.name) << "\","
+          << "\"duration\":" << c.duration << ","
+          << "\"busyMinutes\":" << c.busyMinutes << ","
+          << "\"completedCount\":" << c.completedCount << ","
+          << "\"utilization\":" << util << "}";
     }
-    json << "],";
+    j << "],";
 
     // perPatient
-    json << "\"perPatient\":{";
-    bool firstPatient = true;
-    for (const auto& kv : result.perPatient) {
-        if (!firstPatient) json << ",";
-        firstPatient = false;
-        json << "\"" << escapeJson(kv.first) << "\":[";
+    j << "\"perPatient\":{";
+    bool firstP = true;
+    for (const auto& kv : r.perPatient) {
+        if (!firstP) j << ",";
+        firstP = false;
+        j << "\"" << escapeJson(kv.first) << "\":[";
         for (size_t i = 0; i < kv.second.size(); ++i) {
-            if (i > 0) json << ",";
-            const auto& s = kv.second[i];
-            json
-                << "{"
-                << "\"testId\":\"" << escapeJson(s.testId) << "\","
-                << "\"startTime\":" << s.startTime << ","
-                << "\"duration\":" << s.duration
-                << "}";
+            if (i) j << ",";
+            j << "{\"testId\":\"" << escapeJson(kv.second[i].testId) << "\","
+              << "\"startTime\":" << kv.second[i].startTime << ","
+              << "\"duration\":" << kv.second[i].duration << "}";
         }
-        json << "]";
+        j << "]";
     }
-    json << "},";
+    j << "},";
 
     // events
-    json << "\"events\":[";
-    for (size_t i = 0; i < result.events.size(); ++i) {
-        if (i > 0) json << ",";
-        const auto& e = result.events[i];
-        json
-            << "{"
-            << "\"time\":" << e.time << ","
-            << "\"type\":\"" << escapeJson(e.type) << "\","
-            << "\"centreId\":\"" << escapeJson(e.centreId) << "\","
-            << "\"patientId\":\"" << escapeJson(e.patientId) << "\""
-            << "}";
+    j << "\"events\":[";
+    for (size_t i = 0; i < r.events.size(); ++i) {
+        if (i) j << ",";
+        j << "{\"time\":" << r.events[i].time
+          << ",\"type\":\"" << escapeJson(r.events[i].type) << "\""
+          << ",\"centreId\":\"" << escapeJson(r.events[i].centreId) << "\""
+          << ",\"patientId\":\"" << escapeJson(r.events[i].patientId) << "\"}";
     }
-    json << "]";
-
-    json << "}";
-    return jsonResponse(200, "OK", json.str());
+    j << "]}";
+    return jsonResponse(200, "OK", j.str());
 }
 
-string handleResetQueue(ServerState& state) {
-    state.reset();
+string handleResetQueue(ServerState& st) {
+    st.reset();
     return jsonResponse(200, "OK",
-        "{\"success\":true,\"message\":\"Queue cleared\"}"
-    );
+        "{\"success\":true,\"message\":\"Queue cleared\"}");
 }
 
-// ------------------------------------------------------------
-// Serve Frontend
-// ------------------------------------------------------------
+// ---- GET /api/centres/{id}/next ----
+string handleNextPatient(ServerState& st, const string& centreId) {
+    TestingCentre* centre = st.findCentre(centreId);
+    if (!centre)
+        return errorResponse(404, "Not Found", "Centre not found");
+    if (!centre->available())
+        return errorResponse(409, "Conflict", "Centre is currently busy");
 
+    vector<Patient*> eligible;
+    for (auto& p : st.patients) {
+        if (p.status != PatientStatus::WAITING) continue;
+        for (const auto& ts : p.testStates) {
+            if (ts.testId == centre->testId && ts.status == TestStatus::WAITING) {
+                eligible.push_back(&p);
+                break;
+            }
+        }
+    }
+
+    if (eligible.empty()) {
+        return jsonResponse(200, "OK",
+            "{\"success\":true,\"centreId\":\"" + escapeJson(centreId) +
+            "\",\"patient\":null}");
+    }
+
+    long maxSeq = st.nextSeq > 0 ? st.nextSeq - 1 : 0;
+    Patient* chosen = nullptr;
+    double best = -1e18;
+    for (auto* p : eligible) {
+        long wait = maxSeq - p->addedSeq;
+        if (wait < 0) wait = 0;
+        double score = (double)wait;
+        if (p->emergency) score += 100000;
+        if (score > best) { best = score; chosen = p; }
+    }
+
+    ostringstream j;
+    j << "{\"success\":true,\"centreId\":\"" << escapeJson(centreId) << "\","
+      << "\"patient\":{"
+      << "\"id\":\"" << escapeJson(chosen->id) << "\","
+      << "\"name\":\"" << escapeJson(chosen->name) << "\","
+      << "\"testId\":\"" << escapeJson(centre->testId) << "\","
+      << "\"testName\":\"" << escapeJson(st.testName(centre->testId)) << "\""
+      << "}}";
+    return jsonResponse(200, "OK", j.str());
+}
+
+// ---- POST /api/tests/complete ----
+string handleCompleteTest(ServerState& st, const string& body) {
+    if (body.empty())
+        return errorResponse(400, "Bad Request", "Request body is empty");
+
+    string patientId = jsonGetString(body, "patientId");
+    string testId    = jsonGetString(body, "testId");
+    string centreId  = jsonGetString(body, "centreId");
+
+    if (patientId.empty() || testId.empty())
+        return errorResponse(400, "Bad Request",
+            "patientId and testId are required");
+
+    Patient* p = st.findPatient(patientId);
+    if (!p) return errorResponse(404, "Not Found", "Patient not found");
+
+    // Find WAITING test
+    PatientTestState* ts = nullptr;
+    for (auto& t : p->testStates) {
+        if (t.testId == testId && t.status == TestStatus::WAITING) {
+            ts = &t;
+            break;
+        }
+    }
+    if (!ts)
+        return errorResponse(400, "Bad Request",
+            "Test is not pending for this patient");
+
+    ts->status = TestStatus::COMPLETED;
+    ts->completedAt = st.nextSeq;
+
+    // Update centre if provided
+    if (!centreId.empty()) {
+        TestingCentre* c = st.findCentre(centreId);
+        if (c) {
+            if (c->currentPatient == patientId) {
+                c->currentPatient = "";
+                c->currentTestId = "";
+                c->remainingMin = 0;
+            }
+            c->completedCount++;
+            c->busyMinutes += c->durationMinutes;
+        }
+    }
+
+    // All done?
+    bool allDone = true;
+    for (const auto& t : p->testStates) {
+        if (t.status != TestStatus::COMPLETED) { allDone = false; break; }
+    }
+    if (allDone) p->status = PatientStatus::COMPLETED;
+
+    return jsonResponse(200, "OK",
+        "{\"success\":true,\"patientId\":\"" + escapeJson(patientId) +
+        "\",\"testId\":\"" + escapeJson(testId) + "\",\"completed\":true}");
+}
+
+// ---- Serve Frontend ----
 string handleHome() {
-    FILE* file = fopen("index.html", "rb");
-    if (file == nullptr) {
-        return errorResponse(500, "Internal Server Error",
-            "index.html could not be opened");
-    }
-
+    FILE* f = fopen("index.html", "rb");
+    if (!f) return errorResponse(500, "Internal Server Error",
+        "index.html could not be opened");
     string html;
-    char buffer[4096];
+    char buf[4096];
     while (true) {
-        size_t bytesRead = fread(buffer, 1, sizeof(buffer), file);
-        html.append(buffer, bytesRead);
-        if (bytesRead < sizeof(buffer)) break;
+        size_t n = fread(buf, 1, sizeof(buf), f);
+        html.append(buf, n);
+        if (n < sizeof(buf)) break;
     }
-    bool readFailed = ferror(file);
-    fclose(file);
-
-    if (readFailed) {
-        return errorResponse(500, "Internal Server Error",
-            "Failed to read index.html");
-    }
-    return makeResponse(200, "OK",
-        "text/html; charset=utf-8", html);
+    bool failed = ferror(f);
+    fclose(f);
+    if (failed) return errorResponse(500, "Internal Server Error",
+        "Failed to read index.html");
+    return makeResponse(200, "OK", "text/html; charset=utf-8", html);
 }
 
 // ------------------------------------------------------------
-// Route Requests
+// Routing
 // ------------------------------------------------------------
 
-string routeRequest(
-    const HttpRequest& request,
-    ServerState& state
-) {
-    const string& method = request.method;
-    const string& path   = request.path;
+string routeRequest(const HttpRequest& req, ServerState& st) {
+    const string& m = req.method;
+    const string& p = req.path;
 
-    // ---- Public GETs ----
-    if (method == "GET") {
-        if (path == "/")            return handleHome();
-        if (path == "/api/health")  return handleHealth();
-        if (path == "/api/tests")   return handleTests(state.testRepository);
-        if (path == "/api/centres") return handleCentres(state.testRepository);
-        if (path == "/api/patients") return handleListPatients(state);
-        if (path == "/api/queue")   return handleGetQueue(state);
-    }
+    if (m == "GET") {
+        if (p == "/")                    return handleHome();
+        if (p == "/api/health")          return handleHealth();
+        if (p == "/api/tests")           return handleTests(st);
+        if (p == "/api/centres")         return handleCentres(st);
+        if (p == "/api/patients")        return handleListPatients(st);
+        if (p == "/api/queue")           return handleGetQueue(st);
 
-    // ---- POSTs ----
-    if (method == "POST") {
-        if (path == "/api/patients") {
-            return handleAddPatient(state, request.body);
-        }
-        if (path == "/api/queue/reset") {
-            return handleResetQueue(state);
+        // GET /api/centres/{id}/next
+        string rest;
+        if (matchPrefix(p, "/api/centres/", rest) &&
+            rest.size() > 5 &&
+            rest.compare(rest.size() - 5, 5, "/next") == 0) {
+            return handleNextPatient(st, rest.substr(0, rest.size() - 5));
         }
     }
 
-    // ---- DELETEs ----
-    if (method == "DELETE") {
-        string remainder;
-        if (matchPrefix(path, "/api/patients/", remainder)) {
-            return handleDeletePatient(state, remainder);
-        }
+    if (m == "POST") {
+        if (p == "/api/patients")       return handleAddPatient(st, req.body);
+        if (p == "/api/queue/reset")    return handleResetQueue(st);
+        if (p == "/api/tests/complete") return handleCompleteTest(st, req.body);
     }
 
-    // ---- Route exists but method not allowed? ----
-    bool knownPath =
-        path == "/" ||
-        path == "/api/health" ||
-        path == "/api/tests" ||
-        path == "/api/centres" ||
-        path == "/api/patients" ||
-        path == "/api/queue" ||
-        path.rfind("/api/patients/", 0) == 0;
-
-    if (knownPath) {
-        return errorResponse(405, "Method Not Allowed",
-            "Method not allowed for this route");
+    if (m == "DELETE") {
+        string rest;
+        if (matchPrefix(p, "/api/patients/", rest))
+            return handleDeletePatient(st, rest);
     }
 
-    return errorResponse(404, "Not Found",
-        "Requested route does not exist");
+    bool known =
+        p == "/" || p == "/api/health" || p == "/api/tests" ||
+        p == "/api/centres" || p == "/api/patients" ||
+        p == "/api/queue" || p == "/api/tests/complete" ||
+        p.rfind("/api/patients/", 0) == 0 ||
+        p.rfind("/api/centres/", 0) == 0;
+
+    if (known) return errorResponse(405, "Method Not Allowed",
+        "Method not allowed for this route");
+    return errorResponse(404, "Not Found", "Route does not exist");
 }
 
 // ------------------------------------------------------------
-// Handle One Client
+// Client Handler
 // ------------------------------------------------------------
 
-void handleClient(int clientSocket, ServerState& state) {
-    string rawRequest = readRequest(clientSocket);
-
-    if (rawRequest.empty()) {
-        sendAll(clientSocket,
-            errorResponse(400, "Bad Request",
-                "Empty or unreadable request"));
+void handleClient(int sock, ServerState& st) {
+    string raw = readRequest(sock);
+    if (raw.empty()) {
+        sendAll(sock, errorResponse(400, "Bad Request",
+            "Empty or unreadable request"));
         return;
     }
 
-    HttpRequest request;
-    if (!parseRequestLine(rawRequest, request)) {
-        sendAll(clientSocket,
-            errorResponse(400, "Bad Request",
-                "Invalid HTTP request line"));
+    HttpRequest req;
+    if (!parseRequestLine(raw, req)) {
+        sendAll(sock, errorResponse(400, "Bad Request",
+            "Invalid HTTP request line"));
         return;
     }
 
-    // Strip query string from path for routing
-    size_t queryPos = request.path.find('?');
-    if (queryPos != string::npos) {
-        request.path = request.path.substr(0, queryPos);
-    }
+    size_t q = req.path.find('?');
+    if (q != string::npos) req.path = req.path.substr(0, q);
 
-    cout << "[REQUEST] " << request.method
-         << " " << request.path
-         << " (" << request.body.size() << " body bytes)"
-         << endl;
+    cout << "[REQUEST] " << req.method << " " << req.path
+         << " (" << req.body.size() << " body bytes)" << endl;
 
-    string response = routeRequest(request, state);
-    sendAll(clientSocket, response);
+    sendAll(sock, routeRequest(req, st));
 }
 
 // ------------------------------------------------------------
-// Create HTTP Server Socket
+// Server Socket
 // ------------------------------------------------------------
 
 int createServerSocket() {
-    int serverSocket = ::socket(AF_INET, SOCK_STREAM, 0);
-    if (serverSocket < 0) {
+    int s = ::socket(AF_INET, SOCK_STREAM, 0);
+    if (s < 0) {
         cerr << "[ERROR] socket(): " << strerror(errno) << endl;
         return -1;
     }
-
-    int reuseAddress = 1;
-    if (::setsockopt(
-            serverSocket, SOL_SOCKET, SO_REUSEADDR,
-            &reuseAddress, sizeof(reuseAddress)
-        ) < 0) {
+    int reuse = 1;
+    if (::setsockopt(s, SOL_SOCKET, SO_REUSEADDR,
+                     &reuse, sizeof(reuse)) < 0) {
         cerr << "[ERROR] setsockopt(): " << strerror(errno) << endl;
-        close(serverSocket);
-        return -1;
+        close(s); return -1;
     }
+    sockaddr_in addr{};
+    addr.sin_family = AF_INET;
+    addr.sin_port = htons(Config::PORT);
+    // Loopback only. Change to htonl(INADDR_ANY) to allow LAN access
+    // (see note below in the response).
+    addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
 
-    sockaddr_in serverAddress{};
-    serverAddress.sin_family = AF_INET;
-    serverAddress.sin_port = htons(Config::PORT);
-    serverAddress.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
-
-    if (::bind(
-            serverSocket,
-            reinterpret_cast<sockaddr*>(&serverAddress),
-            sizeof(serverAddress)
-        ) < 0) {
+    if (::bind(s, reinterpret_cast<sockaddr*>(&addr), sizeof(addr)) < 0) {
         cerr << "[ERROR] bind(): " << strerror(errno) << endl;
-        close(serverSocket);
-        return -1;
+        close(s); return -1;
     }
-
-    if (::listen(serverSocket, Config::BACKLOG) < 0) {
+    if (::listen(s, Config::BACKLOG) < 0) {
         cerr << "[ERROR] listen(): " << strerror(errno) << endl;
-        close(serverSocket);
-        return -1;
+        close(s); return -1;
     }
-
-    return serverSocket;
+    return s;
 }
 
 // ------------------------------------------------------------
@@ -949,54 +1033,48 @@ int createServerSocket() {
 int main() {
     signal(SIGPIPE, SIG_IGN);
 
-    cout << endl;
-    cout << "========================================" << endl;
-    cout << "       PRATIKSHA HOSPITAL SYSTEM" << endl;
-    cout << "              v" << Config::VERSION << endl;
-    cout << "========================================" << endl;
+    cout << endl
+         << "========================================" << endl
+         << "       PRATIKSHA HOSPITAL SYSTEM" << endl
+         << "              v" << Config::VERSION << endl
+         << "========================================" << endl;
 
     ServerState state;
-    int serverSocket = createServerSocket();
-    if (serverSocket < 0) {
+    int srv = createServerSocket();
+    if (srv < 0) {
         cerr << "[FATAL] Server could not start." << endl;
         return 1;
     }
 
-    cout << "[SUCCESS] C++ server started." << endl;
-    cout << "[SERVER] http://127.0.0.1:" << Config::PORT << endl;
-    cout << "[API] GET    /api/health"          << endl;
-    cout << "[API] GET    /api/tests"           << endl;
-    cout << "[API] GET    /api/centres"         << endl;
-    cout << "[API] GET    /api/patients"        << endl;
-    cout << "[API] POST   /api/patients"        << endl;
-    cout << "[API] DELETE /api/patients/{id}"   << endl;
-    cout << "[API] GET    /api/queue"           << endl;
-    cout << "[API] POST   /api/queue/reset"     << endl;
-    cout << "[INFO] Press Control+C to stop."   << endl;
-    cout << "========================================" << endl;
+    cout << "[SUCCESS] C++ server started." << endl
+         << "[SERVER] http://127.0.0.1:" << Config::PORT << endl
+         << "[API] GET    /api/health"                    << endl
+         << "[API] GET    /api/tests"                     << endl
+         << "[API] GET    /api/centres"                   << endl
+         << "[API] GET    /api/centres/{id}/next"         << endl
+         << "[API] GET    /api/patients"                  << endl
+         << "[API] POST   /api/patients"                  << endl
+         << "[API] DELETE /api/patients/{id}"             << endl
+         << "[API] POST   /api/tests/complete"            << endl
+         << "[API] GET    /api/queue"                     << endl
+         << "[API] POST   /api/queue/reset"               << endl
+         << "[INFO] Press Control+C to stop."             << endl
+         << "========================================" << endl;
 
     while (true) {
-        sockaddr_in clientAddress{};
-        socklen_t clientLength = sizeof(clientAddress);
-
-        int clientSocket = ::accept(
-            serverSocket,
-            reinterpret_cast<sockaddr*>(&clientAddress),
-            &clientLength
-        );
-
-        if (clientSocket < 0) {
+        sockaddr_in ca{};
+        socklen_t cl = sizeof(ca);
+        int cs = ::accept(srv, reinterpret_cast<sockaddr*>(&ca), &cl);
+        if (cs < 0) {
             if (errno == EINTR) continue;
             cerr << "[ERROR] accept(): " << strerror(errno) << endl;
             continue;
         }
-
-        handleClient(clientSocket, state);
-
-        shutdown(clientSocket, SHUT_RDWR);
-        close(clientSocket);
+        handleClient(cs, state);
+        shutdown(cs, SHUT_RDWR);
+        close(cs);
     }
 
-    close(serverSocket);
+    close(srv);
     return 0;
 }
