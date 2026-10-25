@@ -3,18 +3,14 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<meta name="description" content="PRATIKSHA — Hospital Management System" />
-<title>PRATIKSHA — Hospital Management System</title>
+<meta name="description" content="PRATIKSHA — Smart Diagnostic Queue" />
+<title>PRATIKSHA — Diagnostic Queue</title>
 
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 
 <style>
-/* ============================================================
-   PRATIKSHA — Frontend Styles
-   ============================================================ */
-
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
@@ -23,7 +19,6 @@
     --primary:         #2563EB;
     --primary-hover:   #1D4ED8;
     --primary-soft:    #EFF6FF;
-    --primary-soft-2:  #DBEAFE;
     --secondary:       #0D9488;
     --secondary-soft:  #F0FDFA;
     --violet:          #7C3AED;
@@ -45,7 +40,6 @@
     --amber-border:    #FDE68A;
     --radius-sm:       10px;
     --radius:          14px;
-    --radius-lg:       18px;
     --radius-xl:       22px;
     --shadow-sm:       0 1px 2px rgba(15,23,42,0.04);
     --shadow:          0 4px 16px rgba(15,23,42,0.06);
@@ -97,12 +91,8 @@ button { font-family: inherit; }
     border-radius: 13px;
     background: linear-gradient(135deg, var(--primary) 0%, #3B82F6 100%);
     color: #fff;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 800;
-    font-size: 19px;
-    letter-spacing: -0.02em;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 19px;
     box-shadow: 0 4px 14px rgba(37,99,235,0.32);
     flex-shrink: 0;
 }
@@ -112,37 +102,26 @@ button { font-family: inherit; }
 .brand-sub { font-size: 12px; color: var(--text-3); font-weight: 500; }
 
 .sidebar-nav {
-    flex: 1;
-    overflow-y: auto;
+    flex: 1; overflow-y: auto;
     padding: 14px 12px 8px;
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
+    display: flex; flex-direction: column; gap: 2px;
 }
 
 .nav-section-label {
-    font-size: 10.5px;
-    font-weight: 700;
-    letter-spacing: 0.09em;
-    text-transform: uppercase;
-    color: var(--text-4);
-    padding: 10px 12px 6px;
+    font-size: 10.5px; font-weight: 700;
+    letter-spacing: 0.09em; text-transform: uppercase;
+    color: var(--text-4); padding: 10px 12px 6px;
 }
 
 .nav-item {
-    display: flex;
-    align-items: center;
-    gap: 12px;
+    display: flex; align-items: center; gap: 12px;
     padding: 10px 12px;
     border-radius: var(--radius-sm);
     color: var(--text-2);
-    font-weight: 500;
-    font-size: 13.5px;
+    font-weight: 500; font-size: 13.5px;
     cursor: pointer;
-    border: none;
-    background: transparent;
-    width: 100%;
-    text-align: left;
+    border: none; background: transparent;
+    width: 100%; text-align: left;
     transition: background var(--ease), color var(--ease);
 }
 .nav-item:hover { background: #F8FAFC; color: var(--text); }
@@ -152,55 +131,41 @@ button { font-family: inherit; }
 .nav-item:hover .icon { color: var(--text-2); }
 
 .sidebar-status {
-    margin: 12px;
-    padding: 14px;
+    margin: 12px; padding: 14px;
     border-radius: var(--radius);
     background: #F8FAFC;
     border: 1px solid var(--border-2);
 }
 .status-head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 8px;
-    gap: 8px;
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 8px; gap: 8px;
 }
 .status-label {
-    font-size: 10.5px;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
+    font-size: 10.5px; font-weight: 700;
+    letter-spacing: 0.08em; text-transform: uppercase;
     color: var(--text-3);
 }
 .status-pill {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 4px 9px;
-    border-radius: 999px;
-    font-size: 11px;
-    font-weight: 600;
-    background: var(--green-soft);
-    color: var(--green);
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 9px; border-radius: 999px;
+    font-size: 11px; font-weight: 600;
+    background: var(--green-soft); color: var(--green);
     border: 1px solid var(--green-border);
     white-space: nowrap;
 }
 .status-pill.pending {
-    background: var(--amber-soft);
-    color: var(--amber);
+    background: var(--amber-soft); color: var(--amber);
     border-color: var(--amber-border);
 }
 .status-pill.disconnected {
-    background: var(--red-soft);
-    color: var(--red);
+    background: var(--red-soft); color: var(--red);
     border-color: var(--red-border);
 }
 .status-pill.pending .dot-live { animation: none; }
 .status-pill.disconnected .dot-live { animation: none; box-shadow: none; }
 
 .dot-live {
-    width: 7px; height: 7px;
-    border-radius: 50%;
+    width: 7px; height: 7px; border-radius: 50%;
     background: currentColor;
     animation: pulse 2s infinite;
 }
@@ -216,78 +181,35 @@ button { font-family: inherit; }
 .main {
     margin-left: var(--sidebar-w);
     min-height: 100vh;
-    display: flex;
-    flex-direction: column;
+    display: flex; flex-direction: column;
 }
 
 .topbar {
-    position: sticky;
-    top: 0;
+    position: sticky; top: 0;
     background: rgba(255,255,255,0.85);
     backdrop-filter: saturate(180%) blur(12px);
     -webkit-backdrop-filter: saturate(180%) blur(12px);
     border-bottom: 1px solid var(--border);
     padding: 14px 28px;
-    display: flex;
-    align-items: center;
-    gap: 20px;
+    display: flex; align-items: center; gap: 20px;
     z-index: 30;
 }
 
 .menu-btn { display: none; }
 
 .topbar-title h1 {
-    font-size: 16px;
-    font-weight: 700;
-    color: var(--text);
-    letter-spacing: -0.01em;
+    font-size: 16px; font-weight: 700;
+    color: var(--text); letter-spacing: -0.01em;
     line-height: 1.3;
 }
 .topbar-sub {
     display: block;
-    font-size: 12px;
-    color: var(--text-3);
-    font-weight: 500;
+    font-size: 12px; color: var(--text-3); font-weight: 500;
 }
 
-.topbar-search {
-    margin-left: auto;
-    position: relative;
-    max-width: 340px;
-    flex: 1;
-}
-.topbar-search .icon {
-    position: absolute;
-    left: 12px;
-    top: 50%;
-    transform: translateY(-50%);
-    color: var(--text-4);
-    pointer-events: none;
-}
-.topbar-search input {
-    width: 100%;
-    padding: 9px 12px 9px 38px;
-    border-radius: 10px;
-    border: 1px solid var(--border);
-    background: #F8FAFC;
-    font-size: 13px;
-    font-family: inherit;
-    color: var(--text);
-    transition: border-color var(--ease), background var(--ease), box-shadow var(--ease);
-}
-.topbar-search input:focus {
-    outline: none;
-    border-color: var(--primary);
-    background: #fff;
-    box-shadow: 0 0 0 3px rgba(37,99,235,0.12);
-}
-.topbar-search input::placeholder { color: var(--text-4); }
-
-.topbar-actions { display: flex; align-items: center; gap: 14px; }
+.topbar-actions { margin-left: auto; display: flex; align-items: center; gap: 14px; }
 .topbar-date {
-    font-size: 12.5px;
-    color: var(--text-3);
-    font-weight: 500;
+    font-size: 12.5px; color: var(--text-3); font-weight: 500;
     white-space: nowrap;
 }
 
@@ -296,35 +218,21 @@ button { font-family: inherit; }
     border-radius: 10px;
     border: 1px solid var(--border);
     background: #fff;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
+    display: inline-flex; align-items: center; justify-content: center;
     color: var(--text-2);
     cursor: pointer;
     position: relative;
     transition: background var(--ease), border-color var(--ease), color var(--ease);
 }
 .icon-btn:hover { background: #F8FAFC; color: var(--text); }
-.icon-btn .dot {
-    position: absolute;
-    top: 7px; right: 8px;
-    width: 7px; height: 7px;
-    border-radius: 50%;
-    background: var(--red);
-    border: 2px solid #fff;
-}
 
 .avatar {
     width: 36px; height: 36px;
     border-radius: 10px;
     background: linear-gradient(135deg, #0F172A 0%, #334155 100%);
     color: #fff;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 600;
-    font-size: 12.5px;
-    letter-spacing: 0.02em;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-weight: 600; font-size: 12.5px;
 }
 
 /* Content */
@@ -345,11 +253,8 @@ button { font-family: inherit; }
 
 /* Welcome */
 .welcome {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 24px;
-    padding: 28px;
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 24px; padding: 28px;
     border-radius: var(--radius-xl);
     background: linear-gradient(135deg, #FFFFFF 0%, #F8FAFC 100%);
     border: 1px solid var(--border);
@@ -359,33 +264,24 @@ button { font-family: inherit; }
 }
 .welcome-text { flex: 1; min-width: 240px; }
 .welcome-eyebrow {
-    font-size: 12px;
-    font-weight: 700;
-    letter-spacing: 0.09em;
-    text-transform: uppercase;
-    color: var(--primary);
-    margin-bottom: 8px;
+    font-size: 12px; font-weight: 700;
+    letter-spacing: 0.09em; text-transform: uppercase;
+    color: var(--primary); margin-bottom: 8px;
 }
 .welcome-title {
-    font-size: 24px;
-    font-weight: 700;
-    color: var(--text);
-    letter-spacing: -0.02em;
-    margin-bottom: 6px;
-    line-height: 1.25;
+    font-size: 24px; font-weight: 700;
+    color: var(--text); letter-spacing: -0.02em;
+    margin-bottom: 6px; line-height: 1.25;
 }
 .welcome-sub { font-size: 14px; color: var(--text-3); max-width: 540px; }
 .welcome-actions { display: flex; gap: 10px; flex-wrap: wrap; }
 
 /* Buttons */
 .btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
+    display: inline-flex; align-items: center; gap: 8px;
     padding: 10px 16px;
     border-radius: 10px;
-    font-size: 13.5px;
-    font-weight: 600;
+    font-size: 13.5px; font-weight: 600;
     font-family: inherit;
     cursor: pointer;
     border: 1px solid transparent;
@@ -394,24 +290,20 @@ button { font-family: inherit; }
     text-decoration: none;
 }
 .btn-primary {
-    background: var(--primary);
-    color: #fff;
+    background: var(--primary); color: #fff;
     box-shadow: 0 2px 8px rgba(37,99,235,0.24);
 }
 .btn-primary:hover { background: var(--primary-hover); box-shadow: 0 4px 14px rgba(37,99,235,0.32); }
 .btn-secondary {
-    background: #fff;
-    color: var(--text);
+    background: #fff; color: var(--text);
     border-color: var(--border);
     box-shadow: var(--shadow-sm);
 }
 .btn-secondary:hover { background: #F8FAFC; border-color: #CBD5E1; }
 .btn-ghost {
-    background: transparent;
-    color: var(--primary);
+    background: transparent; color: var(--primary);
     border-color: transparent;
-    padding: 6px 10px;
-    font-size: 13px;
+    padding: 6px 10px; font-size: 13px;
 }
 .btn-ghost:hover { background: var(--primary-soft); }
 .btn:disabled { opacity: 0.55; cursor: not-allowed; }
@@ -437,11 +329,8 @@ button { font-family: inherit; }
 }
 .stat-top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 14px; }
 .stat-icon {
-    width: 42px; height: 42px;
-    border-radius: 12px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
+    width: 42px; height: 42px; border-radius: 12px;
+    display: inline-flex; align-items: center; justify-content: center;
 }
 .stat-icon.blue   { background: var(--primary-soft);   color: var(--primary); }
 .stat-icon.teal   { background: var(--secondary-soft); color: var(--secondary); }
@@ -449,22 +338,14 @@ button { font-family: inherit; }
 .stat-icon.amber  { background: var(--amber-soft);     color: var(--amber); }
 
 .stat-value {
-    font-size: 28px;
-    font-weight: 700;
-    color: var(--text);
-    letter-spacing: -0.02em;
-    line-height: 1.1;
-    margin-bottom: 4px;
+    font-size: 28px; font-weight: 700;
+    color: var(--text); letter-spacing: -0.02em;
+    line-height: 1.1; margin-bottom: 4px;
 }
 .stat-label { font-size: 13px; color: var(--text-3); font-weight: 500; }
 .stat-hint {
-    font-size: 11.5px;
-    color: var(--text-4);
-    margin-top: 8px;
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    font-weight: 500;
+    font-size: 11.5px; color: var(--text-4);
+    margin-top: 8px; font-weight: 500;
 }
 .stat-hint.warn { color: var(--amber); }
 .stat-hint.ok   { color: var(--green); }
@@ -472,48 +353,11 @@ button { font-family: inherit; }
 /* Sections */
 .section { margin-bottom: 24px; }
 .section-head {
-    display: flex;
-    align-items: flex-end;
-    justify-content: space-between;
-    gap: 12px;
-    margin-bottom: 12px;
+    display: flex; align-items: flex-end; justify-content: space-between;
+    gap: 12px; margin-bottom: 12px;
 }
 .section-title { font-size: 15px; font-weight: 700; color: var(--text); letter-spacing: -0.01em; }
 .section-sub   { font-size: 13px; color: var(--text-3); margin-top: 2px; }
-
-/* Quick actions */
-.actions-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 16px;
-}
-.action-card {
-    background: #fff;
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 20px;
-    cursor: pointer;
-    transition: all var(--ease);
-    text-align: left;
-    font-family: inherit;
-}
-.action-card:hover {
-    border-color: var(--primary);
-    box-shadow: var(--shadow);
-    transform: translateY(-1px);
-}
-.action-icon {
-    width: 38px; height: 38px;
-    border-radius: 10px;
-    background: var(--primary-soft);
-    color: var(--primary);
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    margin-bottom: 14px;
-}
-.action-title { font-size: 13.5px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
-.action-desc  { font-size: 12.5px; color: var(--text-3); line-height: 1.45; }
 
 /* Card */
 .card {
@@ -524,71 +368,23 @@ button { font-family: inherit; }
 }
 .card-body { padding: 20px; }
 
-/* Table */
-.table-wrap { overflow-x: auto; }
-.data-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 13.5px;
-}
-.data-table thead th {
-    text-align: left;
-    font-size: 11.5px;
-    font-weight: 700;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    color: var(--text-3);
-    padding: 12px 20px;
-    background: #F8FAFC;
-    border-bottom: 1px solid var(--border);
-    white-space: nowrap;
-}
-.data-table tbody td {
-    padding: 14px 20px;
-    border-bottom: 1px solid var(--border-2);
-    color: var(--text-2);
-    vertical-align: middle;
-}
-.data-table tbody tr:last-child td { border-bottom: none; }
-.data-table tbody tr:hover { background: #FAFBFC; }
-.cell-strong { color: var(--text); font-weight: 600; }
-
-.test-id {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 28px;
-    height: 28px;
-    padding: 0 8px;
-    border-radius: 8px;
-    background: var(--primary-soft);
-    color: var(--primary);
-    font-weight: 700;
-    font-size: 12px;
-}
-
 /* Badges */
 .badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    padding: 4px 10px;
-    border-radius: 999px;
-    font-size: 11.5px;
-    font-weight: 600;
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 4px 10px; border-radius: 999px;
+    font-size: 11.5px; font-weight: 600;
     border: 1px solid transparent;
     white-space: nowrap;
 }
 .badge-green { background: var(--green-soft); color: var(--green); border-color: var(--green-border); }
 .badge-grey  { background: #F1F5F9; color: var(--text-3); border-color: var(--border); }
 .badge-amber { background: var(--amber-soft); color: var(--amber); border-color: var(--amber-border); }
+.badge-red   { background: var(--red-soft); color: var(--red); border-color: var(--red-border); }
 
 /* States */
 .loading-state {
-    padding: 48px 24px;
-    text-align: center;
-    color: var(--text-3);
-    font-size: 13.5px;
+    padding: 48px 24px; text-align: center;
+    color: var(--text-3); font-size: 13.5px;
 }
 .spinner {
     width: 24px; height: 24px;
@@ -604,11 +400,8 @@ button { font-family: inherit; }
 .empty-icon {
     width: 52px; height: 52px;
     border-radius: 14px;
-    background: #F1F5F9;
-    color: var(--text-3);
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
+    background: #F1F5F9; color: var(--text-3);
+    display: inline-flex; align-items: center; justify-content: center;
     margin-bottom: 14px;
 }
 .empty-title { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
@@ -618,47 +411,15 @@ button { font-family: inherit; }
 .error-icon {
     width: 52px; height: 52px;
     border-radius: 14px;
-    background: var(--red-soft);
-    color: var(--red);
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
+    background: var(--red-soft); color: var(--red);
+    display: inline-flex; align-items: center; justify-content: center;
     margin-bottom: 14px;
 }
 .error-title { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
 .error-desc  { font-size: 13px; color: var(--text-3); margin-bottom: 16px; max-width: 400px; margin-left: auto; margin-right: auto; }
 
-/* Key-value list */
-.kv-list { display: grid; gap: 0; }
-.kv-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 12px 0;
-    border-bottom: 1px solid var(--border-2);
-    gap: 12px;
-}
-.kv-row:last-child { border-bottom: none; }
-.kv-key { font-size: 13px; color: var(--text-3); font-weight: 500; }
-.kv-val { font-size: 13px; color: var(--text); font-weight: 600; text-align: right; }
-
 /* Forms */
-.form-card {
-    background: #fff;
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 22px;
-    margin-bottom: 20px;
-    display: none;
-}
-.form-card.open { display: block; animation: fadeIn 0.22s ease; }
-.form-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 16px;
-}
 .form-field { display: flex; flex-direction: column; gap: 6px; }
-.form-field.full { grid-column: 1 / -1; }
 .form-label { font-size: 12.5px; font-weight: 600; color: var(--text-2); }
 .form-input,
 .form-select,
@@ -680,97 +441,31 @@ button { font-family: inherit; }
     border-color: var(--primary);
     box-shadow: 0 0 0 3px rgba(37,99,235,0.12);
 }
-.form-textarea { resize: vertical; min-height: 84px; }
-.form-actions {
-    display: flex;
-    gap: 10px;
-    margin-top: 20px;
-    justify-content: flex-end;
-    flex-wrap: wrap;
-}
-.form-note {
-    font-size: 12.5px;
-    color: var(--amber);
-    background: var(--amber-soft);
-    border: 1px solid var(--amber-border);
-    padding: 10px 12px;
-    border-radius: 10px;
-    margin-top: 16px;
-    display: flex;
-    align-items: flex-start;
-    gap: 8px;
-    line-height: 1.5;
-}
-
-/* Toolbar */
-.toolbar {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 16px;
-    flex-wrap: wrap;
-}
-.search-box { position: relative; flex: 1; max-width: 380px; min-width: 200px; }
-.search-box .icon {
-    position: absolute;
-    left: 12px;
-    top: 50%;
-    transform: translateY(-50%);
-    color: var(--text-4);
-    pointer-events: none;
-}
-.search-box input {
-    width: 100%;
-    padding: 10px 12px 10px 38px;
-    border-radius: 10px;
-    border: 1px solid var(--border);
-    background: #fff;
-    font-size: 13.5px;
-    font-family: inherit;
-    color: var(--text);
-    transition: border-color var(--ease), box-shadow var(--ease);
-}
-.search-box input:focus {
-    outline: none;
-    border-color: var(--primary);
-    box-shadow: 0 0 0 3px rgba(37,99,235,0.12);
-}
 
 /* Page header */
 .page-header {
     margin-bottom: 20px;
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 16px;
-    flex-wrap: wrap;
+    display: flex; align-items: flex-start; justify-content: space-between;
+    gap: 16px; flex-wrap: wrap;
 }
 .page-header h2 {
-    font-size: 20px;
-    font-weight: 700;
+    font-size: 20px; font-weight: 700;
     letter-spacing: -0.02em;
-    color: var(--text);
-    margin-bottom: 4px;
+    color: var(--text); margin-bottom: 4px;
 }
 .page-header p { font-size: 13.5px; color: var(--text-3); }
 .page-header-actions { display: flex; gap: 10px; flex-wrap: wrap; }
 
 /* Toast */
 .toast {
-    position: fixed;
-    bottom: 24px;
-    right: 24px;
-    background: #1E293B;
-    color: #fff;
+    position: fixed; bottom: 24px; right: 24px;
+    background: #1E293B; color: #fff;
     padding: 12px 16px;
     border-radius: 12px;
-    font-size: 13px;
-    font-weight: 500;
+    font-size: 13px; font-weight: 500;
     box-shadow: var(--shadow-lg);
     z-index: 100;
-    display: flex;
-    align-items: center;
-    gap: 10px;
+    display: flex; align-items: center; gap: 10px;
     max-width: 380px;
     animation: toastIn 0.22s ease;
     line-height: 1.5;
@@ -782,28 +477,7 @@ button { font-family: inherit; }
     to   { opacity: 1; transform: none; }
 }
 
-/* Mini stats */
-.mini-stats {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 16px;
-    margin-bottom: 20px;
-}
-.mini-stat {
-    background: #fff;
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 18px 20px;
-}
-.mini-stat-label { font-size: 12.5px; color: var(--text-3); font-weight: 500; margin-bottom: 6px; }
-.mini-stat-value { font-size: 22px; font-weight: 700; color: var(--text); letter-spacing: -0.02em; }
-
-/* Overlay */
-.sidebar-overlay { display: none; }
-
-/* ------------------------------------------------------------
-   DIAGNOSTIC QUEUE
-   ------------------------------------------------------------ */
+/* Queue grid */
 .queue-grid {
     display: grid;
     grid-template-columns: 380px 1fr;
@@ -814,14 +488,13 @@ button { font-family: inherit; }
     .queue-grid { grid-template-columns: 1fr; }
 }
 
+/* Test picker */
 .test-picker {
-    display: grid;
-    gap: 8px;
+    display: grid; gap: 8px;
+    max-height: 320px; overflow-y: auto;
 }
 .test-pick {
-    display: flex;
-    align-items: center;
-    gap: 10px;
+    display: flex; align-items: center; gap: 10px;
     padding: 10px 12px;
     border: 1px solid var(--border);
     border-radius: 10px;
@@ -833,6 +506,17 @@ button { font-family: inherit; }
 .test-pick input { accent-color: var(--primary); cursor: pointer; }
 .test-pick.checked { border-color: var(--primary); background: var(--primary-soft); }
 
+.test-id {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 28px; height: 28px;
+    padding: 0 8px;
+    border-radius: 8px;
+    background: var(--primary-soft);
+    color: var(--primary);
+    font-weight: 700; font-size: 12px;
+}
+
+/* Centre grid */
 .centre-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
@@ -849,17 +533,13 @@ button { font-family: inherit; }
     background: #fff;
 }
 .centre-head {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    margin-bottom: 10px;
-    gap: 10px;
+    display: flex; align-items: flex-start; justify-content: space-between;
+    margin-bottom: 10px; gap: 10px;
 }
 .centre-name { font-weight: 600; font-size: 13.5px; color: var(--text); }
 .centre-sub  { font-size: 11px; color: var(--text-3); margin-top: 2px; }
 .centre-test-tag {
-    font-size: 11px;
-    padding: 3px 8px;
+    font-size: 11px; padding: 3px 8px;
     border-radius: 6px;
     background: var(--primary-soft);
     color: var(--primary);
@@ -869,10 +549,8 @@ button { font-family: inherit; }
 .centre-body { font-size: 12.5px; color: var(--text-3); line-height: 1.7; }
 .centre-body strong { color: var(--text); font-weight: 600; }
 .util-bar {
-    height: 6px;
-    background: #F1F5F9;
-    border-radius: 999px;
-    overflow: hidden;
+    height: 6px; background: #F1F5F9;
+    border-radius: 999px; overflow: hidden;
     margin-top: 6px;
 }
 .util-fill {
@@ -882,6 +560,7 @@ button { font-family: inherit; }
     transition: width 0.4s ease;
 }
 
+/* Patient list */
 .patient-list { display: flex; flex-direction: column; gap: 12px; }
 .patient-card {
     border: 1px solid var(--border);
@@ -890,21 +569,17 @@ button { font-family: inherit; }
     background: #fff;
 }
 .patient-head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-    margin-bottom: 10px;
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 10px; margin-bottom: 10px;
 }
 .patient-id { font-weight: 700; font-size: 13px; color: var(--text); }
+.patient-name { font-size: 12px; color: var(--text-3); margin-left: 6px; }
 
+/* Sequence */
 .sequence-list { display: flex; flex-direction: column; gap: 2px; margin-top: 6px; }
 .sequence-step {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-size: 12px;
-    color: var(--text-2);
+    display: flex; align-items: center; gap: 10px;
+    font-size: 12px; color: var(--text-2);
     padding: 6px 0;
     border-bottom: 1px solid var(--border-2);
 }
@@ -914,21 +589,21 @@ button { font-family: inherit; }
     border-radius: 50%;
     background: var(--primary-soft);
     color: var(--primary);
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 700;
-    font-size: 10.5px;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 10.5px;
     flex-shrink: 0;
 }
 .step-test { font-weight: 600; color: var(--text); }
-.step-time { color: var(--text-4); margin-left: auto; font-family: ui-monospace, monospace; font-size: 11px; }
+.step-time {
+    color: var(--text-4); margin-left: auto;
+    font-family: ui-monospace, monospace;
+    font-size: 11px;
+}
 
-.timeline { display: flex; flex-direction: column; gap: 4px; max-height: 420px; overflow-y: auto; }
+/* Timeline */
+.timeline { display: flex; flex-direction: column; gap: 4px; max-height: 520px; overflow-y: auto; }
 .timeline-row {
-    display: flex;
-    gap: 12px;
-    align-items: flex-start;
+    display: flex; gap: 12px; align-items: flex-start;
     font-size: 12.5px;
     padding: 7px 0;
     border-bottom: 1px solid var(--border-2);
@@ -936,19 +611,19 @@ button { font-family: inherit; }
 .timeline-row:last-child { border-bottom: none; }
 .timeline-time {
     font-family: ui-monospace, monospace;
-    font-size: 11.5px;
-    color: var(--text-3);
+    font-size: 11.5px; color: var(--text-3);
     min-width: 56px;
     padding-top: 1px;
 }
 .timeline-event { flex: 1; color: var(--text-2); line-height: 1.5; }
 .timeline-event strong { color: var(--text); font-weight: 600; }
 
-/* Responsive */
+/* Overlay */
+.sidebar-overlay { display: none; }
+
+/* ---- Responsive ---- */
 @media (max-width: 1024px) {
-    .stats-grid   { grid-template-columns: repeat(2, 1fr); }
-    .actions-grid { grid-template-columns: repeat(2, 1fr); }
-    .mini-stats   { grid-template-columns: repeat(2, 1fr); }
+    .stats-grid { grid-template-columns: repeat(2, 1fr); }
 }
 
 @media (max-width: 768px) {
@@ -957,96 +632,82 @@ button { font-family: inherit; }
     .main { margin-left: 0; }
     .menu-btn { display: inline-flex; }
     .topbar { padding: 12px 16px; gap: 12px; }
-    .topbar-search { display: none; }
     .topbar-date { display: none; }
-    .content { padding: 16px; }
-    .welcome { padding: 20px; }
-    .welcome-title { font-size: 20px; }
-    .form-grid { grid-template-columns: 1fr; }
+
     .sidebar-overlay {
         display: none;
-        position: fixed;
-        inset: 0;
+        position: fixed; inset: 0;
         background: rgba(15,23,42,0.42);
         z-index: 35;
         backdrop-filter: blur(2px);
     }
     .sidebar-overlay.open { display: block; }
     .toast { left: 16px; right: 16px; bottom: 16px; max-width: none; }
+
+    /* Mobile-friendly queue layout (from instructions) */
+    .content { padding: 12px; }
+    .queue-grid { grid-template-columns: minmax(0, 1fr); gap: 14px; }
+    .centre-grid { grid-template-columns: minmax(0, 1fr); }
+    .card-body { padding: 14px; }
+    .btn { min-height: 44px; }
+    .form-input, .form-select { min-height: 44px; font-size: 16px; }
+    .data-table { min-width: 540px; }
 }
 
 @media (max-width: 520px) {
-    .stats-grid   { grid-template-columns: 1fr; }
-    .actions-grid { grid-template-columns: 1fr; }
-    .mini-stats   { grid-template-columns: 1fr; }
+    .stats-grid { grid-template-columns: 1fr; }
     .topbar-title h1 { font-size: 14px; }
     .topbar-sub { font-size: 11px; }
-    .welcome-actions .btn { flex: 1; justify-content: center; }
+}
+
+@media (max-width: 380px) {
+    .welcome-title { font-size: 18px; }
+    .page-header h2 { font-size: 18px; }
+    .welcome-actions { width: 100%; }
+    .welcome-actions .btn { width: 100%; justify-content: center; }
 }
 </style>
 </head>
 <body>
 <div class="app">
 
-    <!-- ============================================================
-         SIDEBAR
-         ============================================================ -->
+    <!-- ==================== SIDEBAR ==================== -->
     <aside class="sidebar" id="sidebar" aria-label="Main navigation">
         <div class="sidebar-brand">
             <div class="brand-mark">P</div>
             <div class="brand-text">
                 <span class="brand-name">PRATIKSHA</span>
-                <span class="brand-sub">Hospital</span>
+                <span class="brand-sub">Diagnostic Queue</span>
             </div>
         </div>
 
         <nav class="sidebar-nav">
-            <div class="nav-section-label">Main</div>
+            <div class="nav-section-label">Queue</div>
 
-            <button class="nav-item active" data-page="dashboard">
+            <button class="nav-item active" data-page="overview">
                 <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>
                 <span>Overview</span>
             </button>
 
-            <button class="nav-item" data-page="patients">
-                <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                <span>Patients</span>
-            </button>
-
-            <button class="nav-item" data-page="doctors">
-                <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.8 2.3A.3.3 0 1 0 5 2H4a2 2 0 0 0-2 2v5a6 6 0 0 0 6 6v0a6 6 0 0 0 6-6V4a2 2 0 0 0-2-2h-1a.2.2 0 1 0 .3.3"/><path d="M8 15v1a6 6 0 0 0 6 6v0a6 6 0 0 0 6-6v-4"/><circle cx="20" cy="10" r="2"/></svg>
-                <span>Doctors</span>
-            </button>
-
-            <button class="nav-item" data-page="appointments">
-                <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                <span>Appointments</span>
-            </button>
-
-            <button class="nav-item" data-page="tests">
-                <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2v7.527a2 2 0 0 1-.211.896L4.72 20.55a1 1 0 0 0 .9 1.45h12.76a1 1 0 0 0 .9-1.45l-5.069-10.127A2 2 0 0 1 14 9.527V2"/><path d="M8.5 2h7"/><path d="M7 16h10"/></svg>
-                <span>Medical Tests</span>
-            </button>
-
             <button class="nav-item" data-page="queue">
-                <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="10" y1="6" x2="21" y2="6"/><line x1="10" y1="12" x2="21" y2="12"/><line x1="10" y1="18" x2="21" y2="18"/><path d="M4 6h1v4"/><path d="M4 10h2"/><path d="M6 18H4c0-1 2-2 2-3s-1-1.5-2-1"/></svg>
-                <span>Diagnostic Queue</span>
+                <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+                <span>Patient Queue</span>
             </button>
 
-            <button class="nav-item" data-page="billing">
-                <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
-                <span>Billing</span>
+            <button class="nav-item" data-page="centres">
+                <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2v7.527a2 2 0 0 1-.211.896L4.72 20.55a1 1 0 0 0 .9 1.45h12.76a1 1 0 0 0 .9-1.45l-5.069-10.127A2 2 0 0 1 14 9.527V2"/><path d="M8.5 2h7"/><path d="M7 16h10"/></svg>
+                <span>Testing Centres</span>
             </button>
 
-            <button class="nav-item" data-page="reports">
+            <button class="nav-item" data-page="schedule">
                 <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg>
-                <span>Reports</span>
+                <span>Queue Schedule</span>
             </button>
         </nav>
 
         <div class="sidebar-status">
             <div class="status-head">
-                <span class="status-label">System Status</span>
+                <span class="status-label">Backend</span>
                 <span class="status-pill pending" id="sidebarStatusPill">
                     <span class="dot-live"></span>Connecting
                 </span>
@@ -1057,12 +718,9 @@ button { font-family: inherit; }
 
     <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
-    <!-- ============================================================
-         MAIN
-         ============================================================ -->
+    <!-- ==================== MAIN ==================== -->
     <div class="main">
 
-        <!-- Topbar -->
         <header class="topbar">
             <button class="icon-btn menu-btn" id="menuBtn" aria-label="Open menu">
                 <svg class="icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
@@ -1070,46 +728,33 @@ button { font-family: inherit; }
 
             <div class="topbar-title">
                 <h1 id="pageTitle">Overview</h1>
-                <span class="topbar-sub" id="pageSub">Dashboard</span>
-            </div>
-
-            <div class="topbar-search">
-                <svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                <input id="topbarSearch" type="text" placeholder="Search medical tests..." autocomplete="off" />
+                <span class="topbar-sub" id="pageSub">Queue status at a glance</span>
             </div>
 
             <div class="topbar-actions">
                 <span class="topbar-date" id="topbarDate"></span>
-                <button class="icon-btn" aria-label="Notifications">
-                    <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-                    <span class="dot"></span>
-                </button>
                 <div class="avatar" title="Babu Jha">BK</div>
             </div>
         </header>
 
-        <!-- Content -->
         <main class="content">
 
-            <!-- ====================================================
-                 PAGE: DASHBOARD
-                 ==================================================== -->
-            <section class="page active" id="page-dashboard">
-
+            <!-- ==================== OVERVIEW ==================== -->
+            <section class="page active" id="page-overview">
                 <div class="welcome">
                     <div class="welcome-text">
                         <div class="welcome-eyebrow" id="greeting">Good Afternoon</div>
-                        <h2 class="welcome-title">Welcome to Pratiksha Hospital Management System</h2>
-                        <p class="welcome-sub">Manage hospital operations from one place.</p>
+                        <h2 class="welcome-title">Smart Diagnostic Queue</h2>
+                        <p class="welcome-sub">Manage patient routing and test scheduling from one place.</p>
                     </div>
                     <div class="welcome-actions">
-                        <button class="btn btn-primary" data-goto="patients">
+                        <button class="btn btn-primary" data-goto="queue">
                             <svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                            Register Patient
+                            Add Patient
                         </button>
-                        <button class="btn btn-secondary" data-goto="appointments">
-                            <svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                            Book Appointment
+                        <button class="btn btn-secondary" data-goto="schedule">
+                            <svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg>
+                            View Schedule
                         </button>
                     </div>
                 </div>
@@ -1118,127 +763,64 @@ button { font-family: inherit; }
 
                 <div class="section">
                     <div class="section-head">
-                        <div><div class="section-title">Quick Actions</div></div>
+                        <div>
+                            <div class="section-title">Testing Centres</div>
+                            <div class="section-sub">Live summary of diagnostic centres</div>
+                        </div>
+                        <button class="btn btn-ghost" data-goto="centres">View details →</button>
                     </div>
-                    <div class="actions-grid">
-                        <button class="action-card" data-goto="patients">
-                            <div class="action-icon">
-                                <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
-                            </div>
-                            <div class="action-title">Register New Patient</div>
-                            <div class="action-desc">Add a new patient record to the system</div>
-                        </button>
-                        <button class="action-card" data-goto="appointments">
-                            <div class="action-icon">
-                                <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="12" y1="14" x2="12" y2="18"/><line x1="10" y1="16" x2="14" y2="16"/></svg>
-                            </div>
-                            <div class="action-title">Schedule Appointment</div>
-                            <div class="action-desc">Book a consultation with a doctor</div>
-                        </button>
-                        <button class="action-card" data-goto="tests">
-                            <div class="action-icon">
-                                <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2v7.527a2 2 0 0 1-.211.896L4.72 20.55a1 1 0 0 0 .9 1.45h12.76a1 1 0 0 0 .9-1.45l-5.069-10.127A2 2 0 0 1 14 9.527V2"/><path d="M8.5 2h7"/><path d="M7 16h10"/></svg>
-                            </div>
-                            <div class="action-title">View Medical Tests</div>
-                            <div class="action-desc">Browse available diagnostic tests</div>
-                        </button>
-                        <button class="action-card" data-goto="reports">
-                            <div class="action-icon">
-                                <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-                            </div>
-                            <div class="action-title">Generate Report</div>
-                            <div class="action-desc">View analytics and reports</div>
-                        </button>
+                    <div class="card">
+                        <div id="overviewCentres"><!-- JS --></div>
                     </div>
                 </div>
 
                 <div class="section">
                     <div class="section-head">
                         <div>
-                            <div class="section-title">Medical Tests Overview</div>
-                            <div class="section-sub">Available diagnostic tests from backend</div>
+                            <div class="section-title">Queue Schedule</div>
+                            <div class="section-sub">Calculated by the C++ backend</div>
                         </div>
-                        <button class="btn btn-ghost" data-goto="tests">View all →</button>
+                        <button class="btn btn-ghost" data-goto="schedule">Full schedule →</button>
                     </div>
                     <div class="card">
-                        <div id="dashboardTests"><!-- JS --></div>
+                        <div id="overviewSchedule"><!-- JS --></div>
                     </div>
-                </div>
-
-                <div class="section">
-                    <div class="section-head">
-                        <div><div class="section-title">System Health</div></div>
-                    </div>
-                    <div class="card">
-                        <div class="card-body">
-                            <div class="kv-list" id="systemHealth"><!-- JS --></div>
-                        </div>
-                    </div>
-                </div>
-
-            </section>
-
-            <!-- ====================================================
-                 PAGE: MEDICAL TESTS
-                 ==================================================== -->
-            <section class="page" id="page-tests">
-                <div class="page-header">
-                    <div>
-                        <h2>Medical Tests</h2>
-                        <p>Manage available diagnostic tests.</p>
-                    </div>
-                </div>
-
-                <div class="toolbar">
-                    <div class="search-box">
-                        <svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                        <input id="testsSearch" type="text" placeholder="Search tests by name or ID..." autocomplete="off" />
-                    </div>
-                    <button class="btn btn-secondary" id="testsRefresh">
-                        <svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/><path d="M3 21v-5h5"/></svg>
-                        Refresh
-                    </button>
-                </div>
-
-                <div class="card">
-                    <div id="testsContent"><!-- JS --></div>
                 </div>
             </section>
 
-            <!-- ====================================================
-                 PAGE: DIAGNOSTIC QUEUE (NEW)
-                 ==================================================== -->
+            <!-- ==================== PATIENT QUEUE ==================== -->
             <section class="page" id="page-queue">
                 <div class="page-header">
                     <div>
-                        <h2>Diagnostic Queue</h2>
-                        <p>Smart patient test routing and queue management.</p>
+                        <h2>Patient Queue</h2>
+                        <p>Add patients and their prescribed diagnostic tests.</p>
                     </div>
                     <div class="page-header-actions">
-                        <button class="btn btn-secondary" id="queueClearBtn">Clear All</button>
-                        <button class="btn btn-primary" id="queueComputeBtn">
+                        <button class="btn btn-secondary" id="queueRefreshBtn">
                             <svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/><path d="M3 21v-5h5"/></svg>
-                            Compute Queue
+                            Refresh
+                        </button>
+                        <button class="btn btn-secondary" id="queueResetBtn" style="color:var(--red);">
+                            <svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                            Clear All
                         </button>
                     </div>
                 </div>
 
-                <div class="form-note" style="margin-top:0; margin-bottom:20px;">
-                    <svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                    <span>Frontend prototype. Patients are stored in browser memory only. Real patient data and C++ algorithm integration will follow in the next step.</span>
-                </div>
-
                 <div class="queue-grid">
-
-                    <!-- LEFT: Entry + Patient list -->
                     <div>
                         <div class="card">
                             <div class="card-body">
-                                <div class="section-title" style="margin-bottom:14px;">Patient Test Entry</div>
+                                <div class="section-title" style="margin-bottom:14px;">Patient Details</div>
 
                                 <div class="form-field" style="margin-bottom:14px;">
                                     <label class="form-label" for="qPatientId">Patient ID</label>
                                     <input class="form-input" id="qPatientId" type="text" placeholder="e.g. P001" autocomplete="off" />
+                                </div>
+
+                                <div class="form-field" style="margin-bottom:14px;">
+                                    <label class="form-label" for="qPatientName">Patient Name</label>
+                                    <input class="form-input" id="qPatientName" type="text" placeholder="Full name" autocomplete="off" />
                                 </div>
 
                                 <div class="form-field" style="margin-bottom:14px;">
@@ -1248,12 +830,14 @@ button { font-family: inherit; }
 
                                 <button class="btn btn-primary" id="qAddPatientBtn" style="width:100%; justify-content:center;">
                                     <svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                                    Add Patient to Queue
+                                    Add to Queue
                                 </button>
                             </div>
                         </div>
+                    </div>
 
-                        <div class="card" style="margin-top:20px;">
+                    <div>
+                        <div class="card">
                             <div class="card-body">
                                 <div class="section-head" style="margin-bottom:12px;">
                                     <div class="section-title">Patients in Queue</div>
@@ -1263,378 +847,57 @@ button { font-family: inherit; }
                             </div>
                         </div>
                     </div>
-
-                    <!-- RIGHT: Results -->
-                    <div>
-                        <div class="card" style="margin-bottom:20px;">
-                            <div class="card-body">
-                                <div class="section-title" style="margin-bottom:14px;">Testing Centres</div>
-                                <div class="centre-grid" id="qCentres"><!-- JS --></div>
-                            </div>
-                        </div>
-
-                        <div class="card" style="margin-bottom:20px;">
-                            <div class="card-body">
-                                <div class="section-title" style="margin-bottom:14px;">Queue Sequence per Patient</div>
-                                <div class="patient-list" id="qSequence"><!-- JS --></div>
-                            </div>
-                        </div>
-
-                        <div class="card">
-                            <div class="card-body">
-                                <div class="section-title" style="margin-bottom:14px;">Schedule Timeline</div>
-                                <div class="timeline" id="qTimeline"><!-- JS --></div>
-                            </div>
-                        </div>
-                    </div>
-
                 </div>
             </section>
 
-            <!-- ====================================================
-                 PAGE: PATIENTS (unchanged)
-                 ==================================================== -->
-            <section class="page" id="page-patients">
+            <!-- ==================== TESTING CENTRES ==================== -->
+            <section class="page" id="page-centres">
                 <div class="page-header">
                     <div>
-                        <h2>Patients</h2>
-                        <p>Manage patient records.</p>
+                        <h2>Testing Centres</h2>
+                        <p>Live status, workload and utilization for each diagnostic centre.</p>
                     </div>
                     <div class="page-header-actions">
-                        <button class="btn btn-primary" id="togglePatientForm">
-                            <svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                            Add Patient
+                        <button class="btn btn-secondary" id="centresRefreshBtn">
+                            <svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/><path d="M3 21v-5h5"/></svg>
+                            Refresh
                         </button>
                     </div>
                 </div>
 
-                <div class="form-card" id="patientForm">
-                    <div class="form-grid">
-                        <div class="form-field full">
-                            <label class="form-label" for="patName">Patient Name</label>
-                            <input class="form-input" id="patName" type="text" placeholder="Full name" />
-                        </div>
-                        <div class="form-field">
-                            <label class="form-label" for="patAge">Age</label>
-                            <input class="form-input" id="patAge" type="number" min="0" placeholder="e.g. 34" />
-                        </div>
-                        <div class="form-field">
-                            <label class="form-label" for="patGender">Gender</label>
-                            <select class="form-select" id="patGender">
-                                <option value="">Select gender</option>
-                                <option>Male</option>
-                                <option>Female</option>
-                                <option>Other</option>
-                            </select>
-                        </div>
-                        <div class="form-field">
-                            <label class="form-label" for="patPhone">Phone Number</label>
-                            <input class="form-input" id="patPhone" type="tel" placeholder="+91 ..." />
-                        </div>
-                        <div class="form-field">
-                            <label class="form-label" for="patEmail">Email</label>
-                            <input class="form-input" id="patEmail" type="email" placeholder="name@example.com" />
-                        </div>
-                        <div class="form-field full">
-                            <label class="form-label" for="patAddress">Address</label>
-                            <textarea class="form-textarea" id="patAddress" placeholder="Residential address"></textarea>
-                        </div>
-                        <div class="form-field">
-                            <label class="form-label" for="patBlood">Blood Group</label>
-                            <select class="form-select" id="patBlood">
-                                <option value="">Select blood group</option>
-                                <option>A+</option><option>A-</option>
-                                <option>B+</option><option>B-</option>
-                                <option>AB+</option><option>AB-</option>
-                                <option>O+</option><option>O-</option>
-                            </select>
-                        </div>
-                        <div class="form-field">
-                            <label class="form-label" for="patEmergency">Emergency Contact</label>
-                            <input class="form-input" id="patEmergency" type="tel" placeholder="+91 ..." />
-                        </div>
-                    </div>
-
-                    <div class="form-note">
-                        <svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                        <span>Patient registration API is not connected yet. The form is UI-only until backend support is added.</span>
-                    </div>
-
-                    <div class="form-actions">
-                        <button class="btn btn-secondary" data-close-form="patientForm">Cancel</button>
-                        <button class="btn btn-primary" id="savePatientBtn">Save Patient</button>
-                    </div>
-                </div>
-
-                <div class="toolbar">
-                    <div class="search-box">
-                        <svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                        <input type="text" placeholder="Search patient..." />
-                    </div>
-                </div>
-
                 <div class="card">
-                    <div class="table-wrap">
-                        <table class="data-table">
-                            <thead>
-                                <tr>
-                                    <th>Patient ID</th>
-                                    <th>Name</th>
-                                    <th>Age</th>
-                                    <th>Contact</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                        </table>
-                    </div>
-                    <div class="empty-state">
-                        <div class="empty-icon">
-                            <svg class="icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                        </div>
-                        <div class="empty-title">No patient records available</div>
-                        <div class="empty-desc">Patient API is not yet connected to the backend. Once implemented, patient records will appear here.</div>
+                    <div class="card-body">
+                        <div id="centresContent" class="centre-grid"><!-- JS --></div>
                     </div>
                 </div>
             </section>
 
-            <!-- ====================================================
-                 PAGE: DOCTORS (unchanged)
-                 ==================================================== -->
-            <section class="page" id="page-doctors">
+            <!-- ==================== QUEUE SCHEDULE ==================== -->
+            <section class="page" id="page-schedule">
                 <div class="page-header">
                     <div>
-                        <h2>Doctors</h2>
-                        <p>Manage doctor records and specializations.</p>
-                    </div>
-                </div>
-
-                <div class="mini-stats">
-                    <div class="mini-stat">
-                        <div class="mini-stat-label">Total Doctors</div>
-                        <div class="mini-stat-value">—</div>
-                    </div>
-                    <div class="mini-stat">
-                        <div class="mini-stat-label">Available Doctors</div>
-                        <div class="mini-stat-value">—</div>
-                    </div>
-                    <div class="mini-stat">
-                        <div class="mini-stat-label">Specializations</div>
-                        <div class="mini-stat-value">—</div>
-                    </div>
-                </div>
-
-                <div class="card">
-                    <div class="table-wrap">
-                        <table class="data-table">
-                            <thead>
-                                <tr>
-                                    <th>Doctor ID</th>
-                                    <th>Name</th>
-                                    <th>Specialization</th>
-                                    <th>Contact</th>
-                                    <th>Status</th>
-                                </tr>
-                            </thead>
-                        </table>
-                    </div>
-                    <div class="empty-state">
-                        <div class="empty-icon">
-                            <svg class="icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.8 2.3A.3.3 0 1 0 5 2H4a2 2 0 0 0-2 2v5a6 6 0 0 0 6 6v0a6 6 0 0 0 6-6V4a2 2 0 0 0-2-2h-1a.2.2 0 1 0 .3.3"/><path d="M8 15v1a6 6 0 0 0 6 6v0a6 6 0 0 0 6-6v-4"/><circle cx="20" cy="10" r="2"/></svg>
-                        </div>
-                        <div class="empty-title">No doctor records available</div>
-                        <div class="empty-desc">Doctor API is not yet connected. Doctor records will appear here once backend support is added.</div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- ====================================================
-                 PAGE: APPOINTMENTS (unchanged)
-                 ==================================================== -->
-            <section class="page" id="page-appointments">
-                <div class="page-header">
-                    <div>
-                        <h2>Appointments</h2>
-                        <p>Manage patient appointments.</p>
+                        <h2>Queue Schedule</h2>
+                        <p>Patient-wise test sequence and timeline calculated by the backend.</p>
                     </div>
                     <div class="page-header-actions">
-                        <button class="btn btn-primary" id="toggleApptForm">
-                            <svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                            New Appointment
+                        <button class="btn btn-secondary" id="scheduleRefreshBtn">
+                            <svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/><path d="M3 21v-5h5"/></svg>
+                            Refresh
                         </button>
                     </div>
                 </div>
 
-                <div class="form-card" id="apptForm">
-                    <div class="form-grid">
-                        <div class="form-field">
-                            <label class="form-label" for="apptPatient">Patient</label>
-                            <input class="form-input" id="apptPatient" type="text" placeholder="Patient name or ID" />
-                        </div>
-                        <div class="form-field">
-                            <label class="form-label" for="apptDoctor">Doctor</label>
-                            <input class="form-input" id="apptDoctor" type="text" placeholder="Doctor name" />
-                        </div>
-                        <div class="form-field">
-                            <label class="form-label" for="apptDate">Appointment Date</label>
-                            <input class="form-input" id="apptDate" type="date" />
-                        </div>
-                        <div class="form-field">
-                            <label class="form-label" for="apptTime">Appointment Time</label>
-                            <input class="form-input" id="apptTime" type="time" />
-                        </div>
-                        <div class="form-field">
-                            <label class="form-label" for="apptDept">Department</label>
-                            <select class="form-select" id="apptDept">
-                                <option value="">Select department</option>
-                                <option>General</option>
-                                <option>Radiology</option>
-                                <option>Pathology</option>
-                                <option>Cardiology</option>
-                                <option>Orthopedics</option>
-                            </select>
-                        </div>
-                        <div class="form-field">
-                            <label class="form-label" for="apptReason">Reason for Visit</label>
-                            <input class="form-input" id="apptReason" type="text" placeholder="Brief reason" />
-                        </div>
-                    </div>
-
-                    <div class="form-note">
-                        <svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                        <span>Appointment API is not connected yet. This form is UI-only until backend support is added.</span>
-                    </div>
-
-                    <div class="form-actions">
-                        <button class="btn btn-secondary" data-close-form="apptForm">Cancel</button>
-                        <button class="btn btn-primary" id="saveApptBtn">Save Appointment</button>
+                <div class="card" style="margin-bottom:20px;">
+                    <div class="card-body">
+                        <div class="section-title" style="margin-bottom:14px;">Patient-wise Sequence</div>
+                        <div id="scheduleSequence" class="patient-list"><!-- JS --></div>
                     </div>
                 </div>
 
                 <div class="card">
-                    <div class="table-wrap">
-                        <table class="data-table">
-                            <thead>
-                                <tr>
-                                    <th>Appointment ID</th>
-                                    <th>Patient Name</th>
-                                    <th>Doctor Name</th>
-                                    <th>Date</th>
-                                    <th>Time</th>
-                                    <th>Status</th>
-                                </tr>
-                            </thead>
-                        </table>
-                    </div>
-                    <div class="empty-state">
-                        <div class="empty-icon">
-                            <svg class="icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                        </div>
-                        <div class="empty-title">No appointments scheduled</div>
-                        <div class="empty-desc">Appointment API is not yet connected. Scheduled appointments will appear here.</div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- ====================================================
-                 PAGE: BILLING (unchanged)
-                 ==================================================== -->
-            <section class="page" id="page-billing">
-                <div class="page-header">
-                    <div>
-                        <h2>Billing</h2>
-                        <p>Invoices, consultation fees and payments.</p>
-                    </div>
-                </div>
-
-                <div class="mini-stats">
-                    <div class="mini-stat">
-                        <div class="mini-stat-label">Total Invoices</div>
-                        <div class="mini-stat-value">—</div>
-                    </div>
-                    <div class="mini-stat">
-                        <div class="mini-stat-label">Total Revenue</div>
-                        <div class="mini-stat-value">—</div>
-                    </div>
-                    <div class="mini-stat">
-                        <div class="mini-stat-label">Pending Payments</div>
-                        <div class="mini-stat-value">—</div>
-                    </div>
-                </div>
-
-                <div class="card">
-                    <div class="table-wrap">
-                        <table class="data-table">
-                            <thead>
-                                <tr>
-                                    <th>Invoice ID</th>
-                                    <th>Patient</th>
-                                    <th>Consultation</th>
-                                    <th>Test Charges</th>
-                                    <th>Total</th>
-                                    <th>Status</th>
-                                </tr>
-                            </thead>
-                        </table>
-                    </div>
-                    <div class="empty-state">
-                        <div class="empty-icon">
-                            <svg class="icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
-                        </div>
-                        <div class="empty-title">No invoices available</div>
-                        <div class="empty-desc">Billing API is not yet connected. Invoices will appear here once backend support is added.</div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- ====================================================
-                 PAGE: REPORTS (unchanged)
-                 ==================================================== -->
-            <section class="page" id="page-reports">
-                <div class="page-header">
-                    <div>
-                        <h2>Reports</h2>
-                        <p>Analytics and hospital insights.</p>
-                    </div>
-                </div>
-
-                <div class="actions-grid" style="margin-bottom:20px;">
-                    <div class="action-card" style="cursor:default;">
-                        <div class="action-icon">
-                            <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
-                        </div>
-                        <div class="action-title">Patient Registration Report</div>
-                        <div class="action-desc">New patient registrations over time</div>
-                    </div>
-                    <div class="action-card" style="cursor:default;">
-                        <div class="action-icon">
-                            <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                        </div>
-                        <div class="action-title">Appointment Report</div>
-                        <div class="action-desc">Scheduled vs completed appointments</div>
-                    </div>
-                    <div class="action-card" style="cursor:default;">
-                        <div class="action-icon">
-                            <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2v7.527a2 2 0 0 1-.211.896L4.72 20.55a1 1 0 0 0 .9 1.45h12.76a1 1 0 0 0 .9-1.45l-5.069-10.127A2 2 0 0 1 14 9.527V2"/><path d="M8.5 2h7"/><path d="M7 16h10"/></svg>
-                        </div>
-                        <div class="action-title">Medical Tests Report</div>
-                        <div class="action-desc">Most performed diagnostic tests</div>
-                    </div>
-                    <div class="action-card" style="cursor:default;">
-                        <div class="action-icon">
-                            <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg>
-                        </div>
-                        <div class="action-title">Revenue Report</div>
-                        <div class="action-desc">Revenue breakdown by department</div>
-                    </div>
-                </div>
-
-                <div class="card">
-                    <div class="empty-state">
-                        <div class="empty-icon">
-                            <svg class="icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg>
-                        </div>
-                        <div class="empty-title">No report data available</div>
-                        <div class="empty-desc">Reports will populate once patient, appointment and billing APIs are connected to the backend.</div>
+                    <div class="card-body">
+                        <div class="section-title" style="margin-bottom:14px;">Schedule Timeline</div>
+                        <div id="scheduleTimeline" class="timeline"><!-- JS --></div>
                     </div>
                 </div>
             </section>
@@ -1643,82 +906,98 @@ button { font-family: inherit; }
     </div>
 </div>
 
-<!-- ============================================================
-     JAVASCRIPT
-     ============================================================ -->
+<!-- ==================== JAVASCRIPT ==================== -->
 <script>
 (function () {
     'use strict';
 
-    /* --------------------------------------------------------
-       Icon paths
-       -------------------------------------------------------- */
+    /* ---- Icons ---- */
     const ICON_PATHS = {
-        'users':        '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
-        'stethoscope':  '<path d="M4.8 2.3A.3.3 0 1 0 5 2H4a2 2 0 0 0-2 2v5a6 6 0 0 0 6 6v0a6 6 0 0 0 6-6V4a2 2 0 0 0-2-2h-1a.2.2 0 1 0 .3.3"/><path d="M8 15v1a6 6 0 0 0 6 6v0a6 6 0 0 0 6-6v-4"/><circle cx="20" cy="10" r="2"/>',
-        'calendar':     '<rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>',
-        'flask':        '<path d="M10 2v7.527a2 2 0 0 1-.211.896L4.72 20.55a1 1 0 0 0 .9 1.45h12.76a1 1 0 0 0 .9-1.45l-5.069-10.127A2 2 0 0 1 14 9.527V2"/><path d="M8.5 2h7"/><path d="M7 16h10"/>',
-        'search':       '<circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>',
-        'refresh':      '<path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/><path d="M3 21v-5h5"/>',
-        'check':        '<polyline points="20 6 9 17 4 12"/>',
-        'alert':        '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>'
+        'users':     '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+        'flask':     '<path d="M10 2v7.527a2 2 0 0 1-.211.896L4.72 20.55a1 1 0 0 0 .9 1.45h12.76a1 1 0 0 0 .9-1.45l-5.069-10.127A2 2 0 0 1 14 9.527V2"/><path d="M8.5 2h7"/><path d="M7 16h10"/>',
+        'grid':      '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/>',
+        'clock':     '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>',
+        'refresh':   '<path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/><path d="M3 21v-5h5"/>',
+        'check':     '<polyline points="20 6 9 17 4 12"/>',
+        'alert':     '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>',
+        'search':    '<circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>',
+        'info':      '<circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>'
     };
-
     function svgIcon(name, size) {
         size = size || 20;
         var inner = ICON_PATHS[name] || '';
         return '<svg class="icon" width="' + size + '" height="' + size + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + inner + '</svg>';
     }
 
-    /* --------------------------------------------------------
-       State
-       -------------------------------------------------------- */
+    /* ---- State ---- */
     var state = {
-        page: 'dashboard',
+        page: 'overview',
         health: null,
         backendOnline: null,
         tests: [],
         testsLoading: false,
         testsError: null,
-        testSearch: ''
+        centres: [],
+        centresLoading: false,
+        centresError: null,
+        patients: [],
+        patientsLoading: false,
+        patientsError: null,
+        queue: null,
+        queueLoading: false,
+        queueError: null
     };
 
-    /* Queue state */
-    var QUEUE_TESTS = {
-        A: { name: 'X-Ray',      duration: 10 },
-        B: { name: 'Blood Test', duration: 5  },
-        C: { name: 'Ultrasound', duration: 20 },
-        D: { name: 'CT Scan',    duration: 30 }
-    };
-
-    var queueState = {
-        patients: [],        // { id, tests: ['A','B'], addedAt: number }
-        lastResult: null,
-        pickerRendered: false
-    };
-
-    /* --------------------------------------------------------
-       API helpers
-       -------------------------------------------------------- */
+    /* ---- API helpers ---- */
     function apiGet(path) {
         return fetch(path, { cache: 'no-store' }).then(function (res) {
-            if (!res.ok) throw new Error('HTTP ' + res.status);
-            return res.json();
+            return res.json().then(function (data) {
+                if (!res.ok) throw new Error((data && data.error) || ('HTTP ' + res.status));
+                return data;
+            });
+        });
+    }
+    function apiPost(path, body) {
+        return fetch(path, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body || {})
+        }).then(function (res) {
+            return res.json().then(function (data) {
+                if (!res.ok) throw new Error((data && data.error) || ('HTTP ' + res.status));
+                return data;
+            });
+        });
+    }
+    function apiDelete(path) {
+        return fetch(path, { method: 'DELETE' }).then(function (res) {
+            return res.json().then(function (data) {
+                if (!res.ok) throw new Error((data && data.error) || ('HTTP ' + res.status));
+                return data;
+            });
         });
     }
 
+    /* ---- Helpers ---- */
     function escapeHtml(value) {
         return String(value == null ? '' : value)
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;')
-            .replace(/'/g, '&#39;');
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
     }
 
-    /* --------------------------------------------------------
-       Toast
-       -------------------------------------------------------- */
+    function getTestName(id) {
+        for (var i = 0; i < state.tests.length; i++) {
+            if (state.tests[i].id === id) return state.tests[i].name;
+        }
+        return id;
+    }
+    function getTestDuration(id) {
+        for (var i = 0; i < state.tests.length; i++) {
+            if (state.tests[i].id === id) return state.tests[i].durationMinutes;
+        }
+        return 0;
+    }
+
     var toastTimer = null;
     function showToast(message, type) {
         var existing = document.querySelector('.toast');
@@ -1731,9 +1010,7 @@ button { font-family: inherit; }
         toastTimer = setTimeout(function () { el.remove(); }, 4200);
     }
 
-    /* --------------------------------------------------------
-       Health / status
-       -------------------------------------------------------- */
+    /* ---- Loaders ---- */
     function loadHealth() {
         return apiGet('/api/health').then(function (data) {
             state.health = data;
@@ -1746,9 +1023,155 @@ button { font-family: inherit; }
         });
     }
 
+    function loadTests() {
+        state.testsLoading = true;
+        state.testsError = null;
+        renderCurrentPage();
+        return apiGet('/api/tests').then(function (data) {
+            state.tests = (data && Array.isArray(data.tests)) ? data.tests : [];
+            state.testsLoading = false;
+            state.testsError = null;
+            renderTestPicker();
+            renderCurrentPage();
+        }).catch(function (err) {
+            state.tests = [];
+            state.testsLoading = false;
+            state.testsError = err.message || 'Failed to load tests';
+            renderTestPicker();
+            renderCurrentPage();
+        });
+    }
+
+    function loadCentres() {
+        state.centresLoading = true;
+        state.centresError = null;
+        renderCurrentPage();
+        return apiGet('/api/centres').then(function (data) {
+            state.centres = (data && Array.isArray(data.centres)) ? data.centres : [];
+            state.centresLoading = false;
+            state.centresError = null;
+            renderCurrentPage();
+        }).catch(function (err) {
+            state.centres = [];
+            state.centresLoading = false;
+            state.centresError = err.message || 'Failed to load centres';
+            renderCurrentPage();
+        });
+    }
+
+    function loadPatients() {
+        state.patientsLoading = true;
+        state.patientsError = null;
+        renderCurrentPage();
+        return apiGet('/api/patients').then(function (data) {
+            state.patients = (data && Array.isArray(data.patients)) ? data.patients : [];
+            state.patientsLoading = false;
+            state.patientsError = null;
+            renderCurrentPage();
+        }).catch(function (err) {
+            state.patients = [];
+            state.patientsLoading = false;
+            state.patientsError = err.message || 'Failed to load patients';
+            renderCurrentPage();
+        });
+    }
+
+    function loadQueue() {
+        if (state.patients.length === 0) {
+            state.queue = null;
+            state.queueLoading = false;
+            state.queueError = null;
+            renderCurrentPage();
+            return Promise.resolve();
+        }
+        state.queueLoading = true;
+        state.queueError = null;
+        renderCurrentPage();
+        return apiGet('/api/queue').then(function (data) {
+            state.queue = data;
+            state.queueLoading = false;
+            state.queueError = null;
+            renderCurrentPage();
+        }).catch(function (err) {
+            state.queue = null;
+            state.queueLoading = false;
+            state.queueError = err.message || 'Failed to compute queue';
+            renderCurrentPage();
+        });
+    }
+
+    function refreshAll() {
+        return loadPatients().then(function () {
+            return loadQueue();
+        });
+    }
+
+    /* ---- Actions ---- */
+    function addPatient() {
+        var idInput = document.getElementById('qPatientId');
+        var nameInput = document.getElementById('qPatientName');
+        var btn = document.getElementById('qAddPatientBtn');
+        if (!idInput) return;
+
+        var id = idInput.value.trim();
+        var name = nameInput ? nameInput.value.trim() : '';
+
+        if (!id) { showToast('Patient ID is required.', 'warn'); idInput.focus(); return; }
+
+        var checks = document.querySelectorAll('#qTestPicker input[type="checkbox"]:checked');
+        var tests = Array.prototype.map.call(checks, function (c) { return c.value; });
+        if (tests.length === 0) { showToast('Select at least one test.', 'warn'); return; }
+
+        if (btn) btn.disabled = true;
+
+        apiPost('/api/patients', { id: id, name: name, tests: tests })
+            .then(function () {
+                idInput.value = '';
+                if (nameInput) nameInput.value = '';
+                Array.prototype.forEach.call(checks, function (c) {
+                    c.checked = false;
+                    var label = c.closest('.test-pick');
+                    if (label) label.classList.remove('checked');
+                });
+                showToast('Patient ' + id + ' added to queue.');
+                return refreshAll();
+            })
+            .catch(function (err) {
+                showToast(err.message, 'error');
+            })
+            .then(function () {
+                if (btn) btn.disabled = false;
+            });
+    }
+
+    function removePatient(id) {
+        apiDelete('/api/patients/' + encodeURIComponent(id))
+            .then(function () {
+                showToast('Patient ' + id + ' removed.');
+                return refreshAll();
+            })
+            .catch(function (err) {
+                showToast(err.message, 'error');
+            });
+    }
+
+    function resetQueue() {
+        if (!confirm('Remove ALL patients from the queue?')) return;
+        apiPost('/api/queue/reset', {})
+            .then(function () {
+                showToast('Queue cleared.');
+                return refreshAll();
+            })
+            .catch(function (err) {
+                showToast(err.message, 'error');
+            });
+    }
+
+    /* ---- Renderers ---- */
     function renderHealth() {
         var pill = document.getElementById('sidebarStatusPill');
         var detail = document.getElementById('sidebarStatusDetail');
+        if (!pill) return;
 
         if (state.backendOnline === null) {
             pill.className = 'status-pill pending';
@@ -1763,256 +1186,275 @@ button { font-family: inherit; }
             pill.innerHTML = '<span class="dot-live"></span>Disconnected';
             detail.textContent = 'Backend is offline';
         }
-
-        renderSystemHealth();
-        renderStats();
     }
 
-    function renderSystemHealth() {
-        var el = document.getElementById('systemHealth');
-        if (!el) return;
-
-        var online = state.backendOnline === true;
-        var h = state.health || {};
-
-        function row(key, valueHtml) {
-            return '<div class="kv-row"><span class="kv-key">' + key + '</span><span class="kv-val">' + valueHtml + '</span></div>';
-        }
-
-        var backendBadge = online
-            ? '<span class="badge badge-green">' + svgIcon('check', 12) + ' Connected</span>'
-            : '<span class="badge badge-grey">Disconnected</span>';
-
-        el.innerHTML = [
-            row('Backend', backendBadge),
-            row('Application', online ? escapeHtml(h.application || '—') : '—'),
-            row('Version', online ? escapeHtml(h.version || '—') : '—'),
-            row('Backend Technology', online ? escapeHtml(h.backend || '—') : '—'),
-            row('Status', online ? escapeHtml(h.status || '—') : 'Disconnected')
-        ].join('');
-    }
-
-    /* --------------------------------------------------------
-       Stats
-       -------------------------------------------------------- */
     function renderStats() {
         var el = document.getElementById('statsGrid');
         if (!el) return;
 
-        var testCount, testHint;
-        if (state.testsLoading) {
-            testCount = '…';
-            testHint = '<span class="stat-hint">Loading…</span>';
-        } else if (state.testsError) {
-            testCount = '—';
-            testHint = '<span class="stat-hint warn">Backend unavailable</span>';
-        } else {
-            testCount = String(state.tests.length);
-            testHint = '<span class="stat-hint ok">Available tests</span>';
+        var totalPatients = state.patients.length;
+        var pendingTests = state.patients.reduce(function (sum, p) {
+            return sum + (Array.isArray(p.tests) ? p.tests.length : 0);
+        }, 0);
+        var activeCentres = state.centres.length;
+        var estimatedCompletion = (state.queue && state.queue.totalTime)
+            ? state.queue.totalTime + ' min'
+            : '—';
+
+        function hint(text, cls) {
+            return '<div class="stat-hint ' + (cls || '') + '">' + escapeHtml(text) + '</div>';
         }
+
+        var patientHint = state.patientsLoading ? 'Loading…'
+                       : state.patientsError ? 'Backend unavailable'
+                       : (totalPatients === 0 ? 'No patients yet' : 'Registered');
+        var testHint = state.patientsLoading ? 'Loading…'
+                     : state.patientsError ? 'Backend unavailable'
+                     : (pendingTests === 0 ? 'Nothing pending' : 'Across all patients');
+        var centreHint = state.centresLoading ? 'Loading…'
+                       : state.centresError ? 'Backend unavailable'
+                       : 'All centres available';
+        var completionHint = state.queueError ? 'Queue failed'
+                          : (state.patients.length === 0 ? 'Add patients first'
+                          : (state.queueLoading ? 'Computing…'
+                          : (state.queue && state.queue.totalTime ? 'Total simulation time' : 'Not available')));
 
         el.innerHTML = [
             '<div class="stat-card">',
                 '<div class="stat-top"><div class="stat-icon blue">' + svgIcon('users', 20) + '</div></div>',
-                '<div class="stat-value">—</div>',
+                '<div class="stat-value">' + totalPatients + '</div>',
                 '<div class="stat-label">Total Patients</div>',
-                '<div class="stat-hint">API not connected</div>',
-            '</div>',
-            '<div class="stat-card">',
-                '<div class="stat-top"><div class="stat-icon violet">' + svgIcon('stethoscope', 20) + '</div></div>',
-                '<div class="stat-value">—</div>',
-                '<div class="stat-label">Total Doctors</div>',
-                '<div class="stat-hint">API not connected</div>',
-            '</div>',
-            '<div class="stat-card">',
-                '<div class="stat-top"><div class="stat-icon amber">' + svgIcon('calendar', 20) + '</div></div>',
-                '<div class="stat-value">—</div>',
-                '<div class="stat-label">Appointments</div>',
-                '<div class="stat-hint">API not connected</div>',
+                hint(patientHint, state.patientsError ? 'warn' : ''),
             '</div>',
             '<div class="stat-card">',
                 '<div class="stat-top"><div class="stat-icon teal">' + svgIcon('flask', 20) + '</div></div>',
-                '<div class="stat-value">' + testCount + '</div>',
-                '<div class="stat-label">Medical Tests</div>',
-                testHint,
+                '<div class="stat-value">' + pendingTests + '</div>',
+                '<div class="stat-label">Pending Tests</div>',
+                hint(testHint, state.patientsError ? 'warn' : ''),
+            '</div>',
+            '<div class="stat-card">',
+                '<div class="stat-top"><div class="stat-icon violet">' + svgIcon('grid', 20) + '</div></div>',
+                '<div class="stat-value">' + (state.centresLoading ? '…' : activeCentres) + '</div>',
+                '<div class="stat-label">Active Centres</div>',
+                hint(centreHint, state.centresError ? 'warn' : ''),
+            '</div>',
+            '<div class="stat-card">',
+                '<div class="stat-top"><div class="stat-icon amber">' + svgIcon('clock', 20) + '</div></div>',
+                '<div class="stat-value">' + estimatedCompletion + '</div>',
+                '<div class="stat-label">Estimated Completion</div>',
+                hint(completionHint, state.queueError ? 'warn' : ''),
             '</div>'
         ].join('');
     }
 
-    /* --------------------------------------------------------
-       Tests page
-       -------------------------------------------------------- */
-    function loadTests() {
-        state.testsLoading = true;
-        state.testsError = null;
-        renderTestsPage();
-        renderDashboardTests();
-        renderStats();
-
-        return apiGet('/api/tests').then(function (data) {
-            var list = (data && Array.isArray(data.tests)) ? data.tests : [];
-            state.tests = list;
-            state.testsLoading = false;
-            state.testsError = null;
-            renderTestsPage();
-            renderDashboardTests();
-            renderStats();
-        }).catch(function (err) {
-            state.tests = [];
-            state.testsLoading = false;
-            state.testsError = 'Unable to load medical tests. (' + err.message + ')';
-            renderTestsPage();
-            renderDashboardTests();
-            renderStats();
-        });
-    }
-
-    function filterTests() {
-        var q = (state.testSearch || '').trim().toLowerCase();
-        if (!q) return state.tests;
-        return state.tests.filter(function (t) {
-            var name = (t.name || '').toLowerCase();
-            var id = (t.id || '').toLowerCase();
-            return name.indexOf(q) !== -1 || id.indexOf(q) !== -1;
-        });
-    }
-
-    function buildTestTable(tests) {
-        var rows = tests.map(function (t) {
-            return '<tr>' +
-                '<td><span class="test-id">' + escapeHtml(t.id) + '</span></td>' +
-                '<td class="cell-strong">' + escapeHtml(t.name) + '</td>' +
-                '<td>' + escapeHtml(t.durationMinutes) + ' min</td>' +
-                '<td><span class="badge badge-green">' + svgIcon('check', 12) + ' Available</span></td>' +
-            '</tr>';
-        }).join('');
-
-        return '<div class="table-wrap"><table class="data-table">' +
-            '<thead><tr><th>ID</th><th>Test Name</th><th>Duration</th><th>Status</th></tr></thead>' +
-            '<tbody>' + rows + '</tbody>' +
-        '</table></div>';
-    }
-
-    function renderTestsPage() {
-        var el = document.getElementById('testsContent');
-        if (!el) return;
-
-        if (state.testsLoading) {
-            el.innerHTML = '<div class="loading-state"><div class="spinner"></div>Loading medical tests...</div>';
-            return;
-        }
-        if (state.testsError) {
-            el.innerHTML =
-                '<div class="error-state">' +
-                    '<div class="error-icon">' + svgIcon('alert', 22) + '</div>' +
-                    '<div class="error-title">Unable to load medical tests</div>' +
-                    '<div class="error-desc">' + escapeHtml(state.testsError) + '</div>' +
-                    '<button class="btn btn-secondary" id="testsRetryBtn">' + svgIcon('refresh', 16) + ' Retry</button>' +
-                '</div>';
-            var retry = document.getElementById('testsRetryBtn');
-            if (retry) retry.addEventListener('click', loadTests);
-            return;
-        }
-        if (state.tests.length === 0) {
-            el.innerHTML =
-                '<div class="empty-state">' +
-                    '<div class="empty-icon">' + svgIcon('flask', 22) + '</div>' +
-                    '<div class="empty-title">No medical tests found</div>' +
-                    '<div class="empty-desc">The backend returned no diagnostic tests.</div>' +
-                '</div>';
-            return;
-        }
-        var filtered = filterTests();
-        if (filtered.length === 0) {
-            el.innerHTML =
-                '<div class="empty-state">' +
-                    '<div class="empty-icon">' + svgIcon('search', 22) + '</div>' +
-                    '<div class="empty-title">No matching tests</div>' +
-                    '<div class="empty-desc">Try a different search term or clear the search box.</div>' +
-                '</div>';
-            return;
-        }
-        el.innerHTML = buildTestTable(filtered);
-    }
-
-    function renderDashboardTests() {
-        var el = document.getElementById('dashboardTests');
-        if (!el) return;
-
-        if (state.testsLoading) {
-            el.innerHTML = '<div class="loading-state"><div class="spinner"></div>Loading...</div>';
-            return;
-        }
-        if (state.testsError) {
-            el.innerHTML =
-                '<div class="error-state" style="padding:28px 20px;">' +
-                    '<div class="error-title">Unable to load medical tests</div>' +
-                    '<div class="error-desc" style="margin-bottom:0;">' + escapeHtml(state.testsError) + '</div>' +
-                '</div>';
-            return;
-        }
-        if (state.tests.length === 0) {
-            el.innerHTML = '<div class="empty-state" style="padding:32px 20px;"><div class="empty-title">No tests available</div></div>';
-            return;
-        }
-        el.innerHTML = buildTestTable(state.tests);
-    }
-
-    /* ========================================================
-       DIAGNOSTIC QUEUE
-       ======================================================== */
-
-    function renderQueueTestPicker() {
-        if (queueState.pickerRendered) return;
+    function renderTestPicker() {
         var el = document.getElementById('qTestPicker');
         if (!el) return;
 
-        el.innerHTML = Object.keys(QUEUE_TESTS).map(function (id) {
-            var t = QUEUE_TESTS[id];
+        if (state.testsLoading) {
+            el.innerHTML = '<div style="padding:16px; text-align:center; color:var(--text-3); font-size:12.5px;"><div class="spinner" style="margin-bottom:8px;"></div>Loading tests…</div>';
+            return;
+        }
+        if (state.testsError) {
+            el.innerHTML = '<div style="padding:12px; font-size:12.5px; color:var(--red);">Failed to load tests.<br><button class="btn btn-ghost" id="testPickerRetry" style="margin-top:6px; padding:4px 8px; font-size:12px;">' + svgIcon('refresh', 12) + ' Retry</button></div>';
+            var r = document.getElementById('testPickerRetry');
+            if (r) r.addEventListener('click', loadTests);
+            return;
+        }
+        if (state.tests.length === 0) {
+            el.innerHTML = '<div style="padding:12px; font-size:12.5px; color:var(--text-3);">No tests available.</div>';
+            return;
+        }
+
+        el.innerHTML = state.tests.map(function (t) {
             return (
-                '<label class="test-pick" data-test-id="' + id + '">' +
-                    '<input type="checkbox" value="' + id + '" />' +
-                    '<span class="test-id">' + id + '</span>' +
+                '<label class="test-pick" data-test-id="' + escapeHtml(t.id) + '">' +
+                    '<input type="checkbox" value="' + escapeHtml(t.id) + '" />' +
+                    '<span class="test-id">' + escapeHtml(t.id) + '</span>' +
                     '<span style="flex:1; font-weight:500;">' + escapeHtml(t.name) + '</span>' +
-                    '<span style="font-size:11.5px; color:var(--text-3);">' + t.duration + ' min</span>' +
+                    '<span style="font-size:11.5px; color:var(--text-3);">' + escapeHtml(t.durationMinutes) + ' min</span>' +
                 '</label>'
             );
         }).join('');
 
-        // Toggle "checked" class on parent label
         el.querySelectorAll('input[type="checkbox"]').forEach(function (cb) {
             cb.addEventListener('change', function () {
                 var label = cb.closest('.test-pick');
                 if (label) label.classList.toggle('checked', cb.checked);
             });
         });
-
-        queueState.pickerRendered = true;
     }
 
-    function renderQueuePatients() {
+    function renderPatientList() {
         var listEl = document.getElementById('qPatientList');
         var countEl = document.getElementById('qPatientCount');
         if (!listEl) return;
 
-        if (countEl) countEl.textContent = String(queueState.patients.length);
+        if (countEl) countEl.textContent = String(state.patients.length);
 
-        if (queueState.patients.length === 0) {
-            listEl.innerHTML = '<div style="text-align:center; color:var(--text-3); font-size:12.5px; padding:14px 0;">No patients in queue. Add one above.</div>';
+        if (state.patientsLoading && state.patients.length === 0) {
+            listEl.innerHTML = '<div class="loading-state"><div class="spinner"></div>Loading patients…</div>';
+            return;
+        }
+        if (state.patientsError) {
+            listEl.innerHTML =
+                '<div class="error-state" style="padding:24px 12px;">' +
+                    '<div class="error-title">Unable to load patients</div>' +
+                    '<div class="error-desc" style="margin-bottom:12px;">' + escapeHtml(state.patientsError) + '</div>' +
+                    '<button class="btn btn-secondary" id="patientListRetry">' + svgIcon('refresh', 16) + ' Retry</button>' +
+                '</div>';
+            var r = document.getElementById('patientListRetry');
+            if (r) r.addEventListener('click', refreshAll);
+            return;
+        }
+        if (state.patients.length === 0) {
+            listEl.innerHTML = '<div class="empty-state" style="padding:24px 12px;"><div class="empty-title">No patients in queue</div><div class="empty-desc">Add a patient using the form.</div></div>';
             return;
         }
 
-        listEl.innerHTML = queueState.patients.map(function (p) {
+        listEl.innerHTML = state.patients.map(function (p) {
+            var testsHtml = (p.tests || []).map(function (t) {
+                return '<span class="badge badge-grey">' + escapeHtml(t) + ' · ' + escapeHtml(getTestName(t)) + '</span>';
+            }).join('');
             return (
                 '<div class="patient-card">' +
                     '<div class="patient-head">' +
-                        '<span class="patient-id">' + escapeHtml(p.id) + '</span>' +
-                        '<button class="btn btn-ghost" data-remove-patient="' + escapeHtml(p.id) + '" ' +
-                            'style="color:var(--red); padding:2px 8px; font-size:12px;">Remove</button>' +
+                        '<div>' +
+                            '<span class="patient-id">' + escapeHtml(p.id) + '</span>' +
+                            (p.name ? '<span class="patient-name">' + escapeHtml(p.name) + '</span>' : '') +
+                        '</div>' +
+                        '<button class="btn btn-ghost" data-remove-patient="' + escapeHtml(p.id) + '" style="color:var(--red); padding:2px 8px; font-size:12px;">Remove</button>' +
                     '</div>' +
-                    '<div style="display:flex; gap:6px; flex-wrap:wrap;">' +
-                        p.tests.map(function (t) {
-                            return '<span class="badge badge-grey">' + t + ' · ' + escapeHtml(QUEUE_TESTS[t].name) + '</span>';
+                    '<div style="display:flex; gap:6px; flex-wrap:wrap;">' + testsHtml + '</div>' +
+                '</div>'
+            );
+        }).join('');
+
+        listEl.querySelectorAll('[data-remove-patient]').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                removePatient(btn.getAttribute('data-remove-patient'));
+            });
+        });
+    }
+
+    function renderCentreCards(container, compact) {
+        if (!container) return;
+
+        if (state.centresLoading && state.centres.length === 0) {
+            container.innerHTML = '<div class="loading-state" style="grid-column:1/-1;"><div class="spinner"></div>Loading centres…</div>';
+            return;
+        }
+        if (state.centresError) {
+            container.innerHTML = '<div class="error-state" style="grid-column:1/-1; padding:24px 12px;"><div class="error-title">Unable to load centres</div><div class="error-desc" style="margin-bottom:12px;">' + escapeHtml(state.centresError) + '</div><button class="btn btn-secondary" id="centresRetryBtn2">' + svgIcon('refresh', 16) + ' Retry</button></div>';
+            var r = document.getElementById('centresRetryBtn2');
+            if (r) r.addEventListener('click', loadCentres);
+            return;
+        }
+        if (state.centres.length === 0) {
+            container.innerHTML = '<div class="empty-state" style="grid-column:1/-1; padding:24px;"><div class="empty-title">No centres available</div></div>';
+            return;
+        }
+
+        var queueById = {};
+        if (state.queue && Array.isArray(state.queue.centres)) {
+            state.queue.centres.forEach(function (c) { queueById[c.id] = c; });
+        }
+
+        container.innerHTML = state.centres.map(function (c) {
+            var live = queueById[c.id];
+            var duration = c.duration != null ? c.duration : c.durationMinutes;
+            var completed = live ? live.completedCount : null;
+            var util = live ? live.utilization : null;
+            var busy = live ? live.busyMinutes : null;
+
+            if (compact) {
+                return (
+                    '<div class="centre-card">' +
+                        '<div class="centre-head">' +
+                            '<div>' +
+                                '<div class="centre-name">' + escapeHtml(c.name) + '</div>' +
+                                '<div class="centre-sub">Centre ' + escapeHtml(c.id) + ' · ' + escapeHtml(duration) + ' min/test</div>' +
+                            '</div>' +
+                            '<span class="centre-test-tag">' + escapeHtml(c.id) + '</span>' +
+                        '</div>' +
+                        '<div class="centre-body">' +
+                            (completed != null
+                                ? 'Completed: <strong>' + completed + '</strong> · Utilization: <strong>' + util + '%</strong>'
+                                : 'Awaiting queue computation') +
+                        '</div>' +
+                    '</div>'
+                );
+            }
+
+            return (
+                '<div class="centre-card">' +
+                    '<div class="centre-head">' +
+                        '<div>' +
+                            '<div class="centre-name">' + escapeHtml(c.name) + '</div>' +
+                            '<div class="centre-sub">Centre ' + escapeHtml(c.id) + '</div>' +
+                        '</div>' +
+                        '<span class="centre-test-tag">' + escapeHtml(duration) + ' min</span>' +
+                    '</div>' +
+                    '<div class="centre-body">' +
+                        'Tests completed: <strong>' + (completed != null ? completed : '—') + '</strong><br>' +
+                        'Busy time: <strong>' + (busy != null ? busy + ' min' : '—') + '</strong><br>' +
+                        'Utilization: <strong>' + (util != null ? util + '%' : '—') + '</strong>' +
+                        '<div class="util-bar"><div class="util-fill" style="width:' + (util || 0) + '%;"></div></div>' +
+                    '</div>' +
+                '</div>'
+            );
+        }).join('');
+    }
+
+    function renderScheduleSequence(container) {
+        if (!container) return;
+
+        if (state.patientsLoading && state.patients.length === 0) {
+            container.innerHTML = '<div class="loading-state"><div class="spinner"></div>Loading…</div>';
+            return;
+        }
+        if (state.queueError) {
+            container.innerHTML = '<div class="error-state"><div class="error-title">Queue computation failed</div><div class="error-desc">' + escapeHtml(state.queueError) + '</div><button class="btn btn-secondary" id="seqRetry">' + svgIcon('refresh', 16) + ' Retry</button></div>';
+            var r = document.getElementById('seqRetry');
+            if (r) r.addEventListener('click', loadQueue);
+            return;
+        }
+        if (state.patients.length === 0) {
+            container.innerHTML = '<div class="empty-state"><div class="empty-title">No patients yet</div><div class="empty-desc">Add patients to see their test sequence.</div></div>';
+            return;
+        }
+        if (state.queueLoading && !state.queue) {
+            container.innerHTML = '<div class="loading-state"><div class="spinner"></div>Computing schedule…</div>';
+            return;
+        }
+        if (!state.queue || !state.queue.perPatient) {
+            container.innerHTML = '<div class="empty-state"><div class="empty-title">Schedule not available</div></div>';
+            return;
+        }
+
+        container.innerHTML = state.patients.map(function (p) {
+            var steps = state.queue.perPatient[p.id] || [];
+            if (steps.length === 0) {
+                return '<div class="patient-card"><div class="patient-head"><span class="patient-id">' + escapeHtml(p.id) + '</span></div><div style="font-size:12.5px; color:var(--text-3);">No tests assigned.</div></div>';
+            }
+            return (
+                '<div class="patient-card">' +
+                    '<div class="patient-head">' +
+                        '<div>' +
+                            '<span class="patient-id">' + escapeHtml(p.id) + '</span>' +
+                            (p.name ? '<span class="patient-name">' + escapeHtml(p.name) + '</span>' : '') +
+                        '</div>' +
+                        '<span class="badge badge-green">' + steps.length + ' test' + (steps.length > 1 ? 's' : '') + '</span>' +
+                    '</div>' +
+                    '<div class="sequence-list">' +
+                        steps.map(function (s, i) {
+                            return (
+                                '<div class="sequence-step">' +
+                                    '<span class="step-num">' + (i + 1) + '</span>' +
+                                    '<span class="step-test">' + escapeHtml(s.testId) + ' · ' + escapeHtml(getTestName(s.testId)) + '</span>' +
+                                    '<span class="step-time">+ ' + s.startTime + ' min</span>' +
+                                '</div>'
+                            );
                         }).join('') +
                     '</div>' +
                 '</div>'
@@ -2020,407 +1462,118 @@ button { font-family: inherit; }
         }).join('');
     }
 
-    function renderQueueEmptyPanels() {
-        var centresEl = document.getElementById('qCentres');
-        var seqEl = document.getElementById('qSequence');
-        var tlEl = document.getElementById('qTimeline');
+    function renderScheduleTimeline(container) {
+        if (!container) return;
 
-        if (centresEl) {
-            centresEl.innerHTML = Object.keys(QUEUE_TESTS).map(function (id) {
-                var t = QUEUE_TESTS[id];
-                return (
-                    '<div class="centre-card">' +
-                        '<div class="centre-head">' +
-                            '<div>' +
-                                '<div class="centre-name">' + escapeHtml(t.name) + '</div>' +
-                                '<div class="centre-sub">Centre ' + id + '</div>' +
-                            '</div>' +
-                            '<span class="centre-test-tag">' + t.duration + ' min</span>' +
-                        '</div>' +
-                        '<div class="centre-body">Waiting for queue computation…</div>' +
-                    '</div>'
-                );
-            }).join('');
-        }
-        if (seqEl) {
-            seqEl.innerHTML = '<div style="text-align:center; color:var(--text-3); font-size:12.5px; padding:14px 0;">Compute the queue to see each patient’s test sequence.</div>';
-        }
-        if (tlEl) {
-            tlEl.innerHTML = '<div style="text-align:center; color:var(--text-3); font-size:12.5px; padding:14px 0;">No events yet.</div>';
-        }
-    }
-
-    function addPatientToQueue() {
-        var idInput = document.getElementById('qPatientId');
-        if (!idInput) return;
-        var id = idInput.value.trim();
-
-        if (!id) {
-            showToast('Patient ID is required.', 'warn');
-            return;
-        }
-        if (queueState.patients.some(function (p) { return p.id === id; })) {
-            showToast('Patient ID already in queue.', 'warn');
-            return;
-        }
-        var checks = document.querySelectorAll('#qTestPicker input[type="checkbox"]:checked');
-        var tests = Array.prototype.map.call(checks, function (c) { return c.value; });
-
-        if (tests.length === 0) {
-            showToast('Select at least one test.', 'warn');
+        if (!state.queue || !Array.isArray(state.queue.events) || state.queue.events.length === 0) {
+            container.innerHTML = '<div class="empty-state" style="padding:24px 12px;"><div class="empty-title">No events yet</div><div class="empty-desc">Add patients to see the timeline.</div></div>';
             return;
         }
 
-        queueState.patients.push({
-            id: id,
-            tests: tests,
-            addedAt: queueState.patients.length
-        });
+        container.innerHTML = state.queue.events.map(function (e) {
+            var isStart = e.type === 'start';
+            var color = isStart ? 'var(--primary)' : 'var(--green)';
+            var label = isStart ? 'Start' : 'Complete';
+            var icon = isStart ? '▶' : '✓';
+            return (
+                '<div class="timeline-row">' +
+                    '<span class="timeline-time">' + e.time + ' min</span>' +
+                    '<span class="timeline-event">' +
+                        '<strong style="color:' + color + ';">' + icon + ' ' + label + '</strong>' +
+                        ' · <strong>' + escapeHtml(e.patientId) + '</strong>' +
+                        ' · ' + escapeHtml(getTestName(e.centreId)) + ' (' + escapeHtml(e.centreId) + ')' +
+                    '</span>' +
+                '</div>'
+            );
+        }).join('');
+    }
 
-        idInput.value = '';
-        Array.prototype.forEach.call(checks, function (c) {
-            c.checked = false;
-            var label = c.closest('.test-pick');
-            if (label) label.classList.remove('checked');
-        });
+    function renderOverviewSchedule() {
+        var el = document.getElementById('overviewSchedule');
+        if (!el) return;
 
-        renderQueuePatients();
-
-        if (queueState.lastResult) {
-            computeQueue(false);  // silent recompute
-        } else {
-            renderQueueEmptyPanels();
+        if (state.patients.length === 0) {
+            el.innerHTML = '<div class="empty-state" style="padding:32px 20px;"><div class="empty-title">No schedule yet</div><div class="empty-desc">Add patients to compute a queue schedule.</div></div>';
+            return;
         }
-
-        showToast('Patient ' + id + ' added to queue.');
-    }
-
-    function removePatientFromQueue(patientId) {
-        queueState.patients = queueState.patients.filter(function (p) { return p.id !== patientId; });
-        // Re-index addedAt to keep ordering stable
-        queueState.patients.forEach(function (p, i) { p.addedAt = i; });
-
-        renderQueuePatients();
-
-        if (queueState.patients.length === 0) {
-            queueState.lastResult = null;
-            renderQueueEmptyPanels();
-        } else if (queueState.lastResult) {
-            computeQueue(false);
+        if (state.queueError) {
+            el.innerHTML = '<div class="error-state" style="padding:24px 16px;"><div class="error-title">Queue failed</div><div class="error-desc" style="margin-bottom:0;">' + escapeHtml(state.queueError) + '</div></div>';
+            return;
         }
-    }
-
-    function clearQueue() {
-        queueState.patients = [];
-        queueState.lastResult = null;
-
-        var idInput = document.getElementById('qPatientId');
-        if (idInput) idInput.value = '';
-
-        var checks = document.querySelectorAll('#qTestPicker input[type="checkbox"]');
-        Array.prototype.forEach.call(checks, function (c) {
-            c.checked = false;
-            var label = c.closest('.test-pick');
-            if (label) label.classList.remove('checked');
-        });
-
-        renderQueuePatients();
-        renderQueueEmptyPanels();
-        showToast('Queue cleared.');
-    }
-
-    /**
-     * Smart diagnostic queue algorithm (client-side prototype).
-     *
-     * Report rules implemented:
-     *   1. First pass — distribute patients to available centres.
-     *   2. Queue for common tests forms only after each relevant centre
-     *      has received its first patient.
-     *   3. Priority = waiting minutes + test duration (longer waiting /
-     *      longer test = higher priority).
-     *   4. Recalculate after each test completes.
-     */
-    function computeQueue(showToastOnSuccess) {
-        if (queueState.patients.length === 0) {
-            showToast('Add at least one patient first.', 'warn');
+        if (!state.queue) {
+            el.innerHTML = '<div class="loading-state"><div class="spinner"></div>Computing…</div>';
             return;
         }
 
-        // Snapshot patient working copies
-        var patients = queueState.patients.map(function (p) {
-            return {
-                id: p.id,
-                remaining: p.tests.slice(),
-                done: [],
-                addedAt: p.addedAt
-            };
-        });
-
-        // Snapshot centres — one centre per test type
-        var centres = {};
-        Object.keys(QUEUE_TESTS).forEach(function (id) {
-            centres[id] = {
-                id: id,
-                name: QUEUE_TESTS[id].name,
-                duration: QUEUE_TESTS[id].duration,
-                current: null,
-                remainingMin: 0,
-                busyMinutes: 0
-            };
-        });
-
-        var events = [];
-        var perPatient = {};
-        patients.forEach(function (p) { perPatient[p.id] = []; });
-
-        var time = 0;
-        var MAX_TIME = 5000;
-
-        while (time < MAX_TIME) {
-            // 1) Process completions
-            Object.keys(centres).forEach(function (cid) {
-                var c = centres[cid];
-                if (c.current && c.remainingMin <= 0) {
-                    var p = patients.find(function (x) { return x.id === c.current; });
-                    if (p) {
-                        var idx = p.remaining.indexOf(cid);
-                        if (idx >= 0) p.remaining.splice(idx, 1);
-                        p.done.push(cid);
-                    }
-                    events.push({ time: time, type: 'complete', centre: cid, patient: c.current });
-                    c.current = null;
-                }
-            });
-
-            // All done?
-            var allDone = patients.every(function (p) { return p.remaining.length === 0; });
-            if (allDone) break;
-
-            // 2) Assign free centres (first-pass round-robin happens
-            //    naturally in the very first iteration).
-            var busyPatients = {};
-            Object.keys(centres).forEach(function (cid) {
-                if (centres[cid].current) busyPatients[centres[cid].current] = true;
-            });
-
-            Object.keys(centres).forEach(function (cid) {
-                var c = centres[cid];
-                if (c.current) return;
-
-                var eligible = patients.filter(function (p) {
-                    return p.remaining.indexOf(cid) !== -1 && !busyPatients[p.id];
-                });
-                if (eligible.length === 0) return;
-
-                // Priority: waiting minutes + test duration
-                eligible.sort(function (a, b) {
-                    var waitA = Math.max(0, time - a.addedAt);
-                    var waitB = Math.max(0, time - b.addedAt);
-                    var scoreA = waitA + c.duration;
-                    var scoreB = waitB + c.duration;
-                    return scoreB - scoreA;
-                });
-
-                var chosen = eligible[0];
-                c.current = chosen.id;
-                c.remainingMin = c.duration;
-                busyPatients[chosen.id] = true;
-
-                events.push({ time: time, type: 'start', centre: cid, patient: chosen.id });
-                perPatient[chosen.id].push({
-                    test: cid,
-                    startTime: time,
-                    duration: c.duration
-                });
-            });
-
-            // 3) Advance time
-            time += 1;
-            Object.keys(centres).forEach(function (cid) {
-                if (centres[cid].remainingMin > 0) {
-                    centres[cid].remainingMin -= 1;
-                    centres[cid].busyMinutes += 1;
-                }
-            });
-        }
-
-        queueState.lastResult = {
-            patients: patients,
-            centres: centres,
-            events: events,
-            perPatient: perPatient,
-            totalTime: time
-        };
-
-        renderQueueResult();
-
-        if (showToastOnSuccess !== false) {
-            showToast('Queue computed successfully.');
-        }
+        var totalEvents = (state.queue.events || []).length;
+        el.innerHTML =
+            '<div class="card-body">' +
+                '<div style="display:flex; flex-wrap:wrap; gap:16px; align-items:center;">' +
+                    '<div><div style="font-size:12px; color:var(--text-3);">Total duration</div><div style="font-size:22px; font-weight:700;">' + (state.queue.totalTime || 0) + ' min</div></div>' +
+                    '<div style="width:1px; height:40px; background:var(--border);"></div>' +
+                    '<div><div style="font-size:12px; color:var(--text-3);">Patients scheduled</div><div style="font-size:22px; font-weight:700;">' + state.patients.length + '</div></div>' +
+                    '<div style="width:1px; height:40px; background:var(--border);"></div>' +
+                    '<div><div style="font-size:12px; color:var(--text-3);">Events</div><div style="font-size:22px; font-weight:700;">' + totalEvents + '</div></div>' +
+                '</div>' +
+            '</div>';
     }
 
-    function renderQueueResult() {
-        var result = queueState.lastResult;
-        if (!result) {
-            renderQueueEmptyPanels();
-            return;
-        }
-
-        /* ---- Centres ---- */
-        var centresEl = document.getElementById('qCentres');
-        if (centresEl) {
-            centresEl.innerHTML = Object.keys(result.centres).map(function (cid) {
-                var c = result.centres[cid];
-                var completed = result.events.filter(function (e) {
-                    return e.centre === cid && e.type === 'complete';
-                }).length;
-                var util = result.totalTime > 0
-                    ? Math.round((c.busyMinutes / result.totalTime) * 100)
-                    : 0;
-
-                return (
-                    '<div class="centre-card">' +
-                        '<div class="centre-head">' +
-                            '<div>' +
-                                '<div class="centre-name">' + escapeHtml(c.name) + '</div>' +
-                                '<div class="centre-sub">Centre ' + cid + '</div>' +
-                            '</div>' +
-                            '<span class="centre-test-tag">' + c.duration + ' min</span>' +
-                        '</div>' +
-                        '<div class="centre-body">' +
-                            'Tests completed: <strong>' + completed + '</strong><br>' +
-                            'Utilization: <strong>' + util + '%</strong>' +
-                            '<div class="util-bar"><div class="util-fill" style="width:' + util + '%;"></div></div>' +
-                        '</div>' +
-                    '</div>'
-                );
-            }).join('');
-        }
-
-        /* ---- Per-patient sequence ---- */
-        var seqEl = document.getElementById('qSequence');
-        if (seqEl) {
-            seqEl.innerHTML = result.patients.map(function (p) {
-                var steps = result.perPatient[p.id] || [];
-                if (steps.length === 0) {
-                    return (
-                        '<div class="patient-card">' +
-                            '<div class="patient-head"><span class="patient-id">' + escapeHtml(p.id) + '</span></div>' +
-                            '<div style="font-size:12.5px; color:var(--text-3);">No tests assigned.</div>' +
-                        '</div>'
-                    );
-                }
-                return (
-                    '<div class="patient-card">' +
-                        '<div class="patient-head">' +
-                            '<span class="patient-id">' + escapeHtml(p.id) + '</span>' +
-                            '<span class="badge badge-green">' + steps.length + ' test' + (steps.length > 1 ? 's' : '') + '</span>' +
-                        '</div>' +
-                        '<div class="sequence-list">' +
-                            steps.map(function (s, i) {
-                                return (
-                                    '<div class="sequence-step">' +
-                                        '<span class="step-num">' + (i + 1) + '</span>' +
-                                        '<span class="step-test">' + s.test + ' · ' + escapeHtml(QUEUE_TESTS[s.test].name) + '</span>' +
-                                        '<span class="step-time">+ ' + s.startTime + ' min</span>' +
-                                    '</div>'
-                                );
-                            }).join('') +
-                        '</div>' +
-                    '</div>'
-                );
-            }).join('');
-        }
-
-        /* ---- Timeline ---- */
-        var tlEl = document.getElementById('qTimeline');
-        if (tlEl) {
-            if (result.events.length === 0) {
-                tlEl.innerHTML = '<div style="text-align:center; color:var(--text-3); font-size:12.5px; padding:14px 0;">No events.</div>';
-            } else {
-                tlEl.innerHTML = result.events.map(function (e) {
-                    var isStart = e.type === 'start';
-                    var color = isStart ? 'var(--primary)' : 'var(--green)';
-                    var label = isStart ? 'Start' : 'Complete';
-                    var icon = isStart ? '▶' : '✓';
-                    return (
-                        '<div class="timeline-row">' +
-                            '<span class="timeline-time">' + e.time + ' min</span>' +
-                            '<span class="timeline-event">' +
-                                '<strong style="color:' + color + ';">' + icon + ' ' + label + '</strong>' +
-                                ' · <strong>' + escapeHtml(e.patient) + '</strong>' +
-                                ' · ' + escapeHtml(QUEUE_TESTS[e.centre].name) + ' (' + e.centre + ')' +
-                            '</span>' +
-                        '</div>'
-                    );
-                }).join('');
-            }
-        }
+    function renderOverviewPage() {
+        renderStats();
+        renderCentreCards(document.getElementById('overviewCentres'), true);
+        renderOverviewSchedule();
     }
 
-    /* --------------------------------------------------------
-       Navigation
-       -------------------------------------------------------- */
+    function renderQueuePage() {
+        renderTestPicker();
+        renderPatientList();
+    }
+
+    function renderCentresPage() {
+        renderCentreCards(document.getElementById('centresContent'), false);
+    }
+
+    function renderSchedulePage() {
+        renderScheduleSequence(document.getElementById('scheduleSequence'));
+        renderScheduleTimeline(document.getElementById('scheduleTimeline'));
+    }
+
+    function renderCurrentPage() {
+        if (state.page === 'overview') renderOverviewPage();
+        else if (state.page === 'queue') renderQueuePage();
+        else if (state.page === 'centres') renderCentresPage();
+        else if (state.page === 'schedule') renderSchedulePage();
+    }
+
+    /* ---- Navigation ---- */
     var PAGES = {
-        dashboard:    { title: 'Overview',         sub: 'Dashboard' },
-        patients:     { title: 'Patients',         sub: 'Patient records' },
-        doctors:      { title: 'Doctors',          sub: 'Medical staff' },
-        appointments: { title: 'Appointments',     sub: 'Scheduling' },
-        tests:        { title: 'Medical Tests',    sub: 'Diagnostic tests' },
-        queue:        { title: 'Diagnostic Queue', sub: 'Smart test routing' },
-        billing:      { title: 'Billing',          sub: 'Invoices and payments' },
-        reports:      { title: 'Reports',          sub: 'Analytics' }
+        overview: { title: 'Overview',        sub: 'Queue status at a glance' },
+        queue:    { title: 'Patient Queue',   sub: 'Add and manage patients' },
+        centres:  { title: 'Testing Centres', sub: 'Live centre status' },
+        schedule: { title: 'Queue Schedule',  sub: 'Test sequence & timeline' }
     };
 
     function navigate(page) {
         if (!PAGES[page]) return;
         state.page = page;
 
-        var sections = document.querySelectorAll('.page');
-        for (var i = 0; i < sections.length; i++) {
-            sections[i].classList.toggle('active', sections[i].id === 'page-' + page);
-        }
-        var navs = document.querySelectorAll('.nav-item');
-        for (var j = 0; j < navs.length; j++) {
-            navs[j].classList.toggle('active', navs[j].getAttribute('data-page') === page);
-        }
+        document.querySelectorAll('.page').forEach(function (s) {
+            s.classList.toggle('active', s.id === 'page-' + page);
+        });
+        document.querySelectorAll('.nav-item').forEach(function (n) {
+            n.classList.toggle('active', n.getAttribute('data-page') === page);
+        });
 
-        document.getElementById('pageTitle').textContent = PAGES[page].title;
-        document.getElementById('pageSub').textContent = PAGES[page].sub;
+        var t = document.getElementById('pageTitle');
+        var s = document.getElementById('pageSub');
+        if (t) t.textContent = PAGES[page].title;
+        if (s) s.textContent = PAGES[page].sub;
 
         closeSidebar();
         window.scrollTo({ top: 0, behavior: 'smooth' });
-
-        if (page === 'tests' || page === 'dashboard') {
-            if (state.tests.length === 0 && !state.testsLoading && !state.testsError) {
-                loadTests();
-            }
-            if (state.backendOnline !== true) {
-                loadHealth();
-            }
-        }
-
-        if (page === 'tests') {
-            var testsSearch = document.getElementById('testsSearch');
-            if (testsSearch && !testsSearch.value) {
-                testsSearch.value = state.testSearch;
-            }
-        }
-
-        if (page === 'queue') {
-            renderQueueTestPicker();
-            renderQueuePatients();
-            if (queueState.lastResult) {
-                renderQueueResult();
-            } else {
-                renderQueueEmptyPanels();
-            }
-        }
+        renderCurrentPage();
     }
 
-    /* --------------------------------------------------------
-       Sidebar (mobile)
-       -------------------------------------------------------- */
     function openSidebar() {
         document.getElementById('sidebar').classList.add('open');
         document.getElementById('sidebarOverlay').classList.add('open');
@@ -2430,153 +1583,88 @@ button { font-family: inherit; }
         document.getElementById('sidebarOverlay').classList.remove('open');
     }
 
-    /* --------------------------------------------------------
-       Init
-       -------------------------------------------------------- */
+    /* ---- Init ---- */
     function init() {
-        // Greeting + date
         var now = new Date();
         var hour = now.getHours();
         var greeting = hour < 12 ? 'Good Morning' : (hour < 17 ? 'Good Afternoon' : 'Good Evening');
-        document.getElementById('greeting').textContent = greeting;
-
-        try {
-            document.getElementById('topbarDate').textContent = now.toLocaleDateString('en-IN', {
-                weekday: 'short', day: '2-digit', month: 'short', year: 'numeric'
-            });
-        } catch (e) {
-            document.getElementById('topbarDate').textContent = '';
+        var ge = document.getElementById('greeting');
+        if (ge) ge.textContent = greeting;
+        var td = document.getElementById('topbarDate');
+        if (td) {
+            try {
+                td.textContent = now.toLocaleDateString('en-IN', {
+                    weekday: 'short', day: '2-digit', month: 'short', year: 'numeric'
+                });
+            } catch (e) { td.textContent = ''; }
         }
 
-        // Nav
-        var navs = document.querySelectorAll('.nav-item');
-        for (var i = 0; i < navs.length; i++) {
-            navs[i].addEventListener('click', function () {
-                navigate(this.getAttribute('data-page'));
+        document.querySelectorAll('.nav-item').forEach(function (n) {
+            n.addEventListener('click', function () {
+                navigate(n.getAttribute('data-page'));
             });
-        }
+        });
 
         document.addEventListener('click', function (e) {
             var target = e.target.closest('[data-goto]');
-            if (target) {
-                navigate(target.getAttribute('data-goto'));
-            }
+            if (target) navigate(target.getAttribute('data-goto'));
         });
 
-        // Menu
-        document.getElementById('menuBtn').addEventListener('click', openSidebar);
-        document.getElementById('sidebarOverlay').addEventListener('click', closeSidebar);
+        var mb = document.getElementById('menuBtn');
+        if (mb) mb.addEventListener('click', openSidebar);
+        var so = document.getElementById('sidebarOverlay');
+        if (so) so.addEventListener('click', closeSidebar);
 
-        // Topbar search
-        var topSearch = document.getElementById('topbarSearch');
-        topSearch.addEventListener('input', function () {
-            if (state.page === 'tests') {
-                state.testSearch = this.value;
-                var ts = document.getElementById('testsSearch');
-                if (ts) ts.value = this.value;
-                renderTestsPage();
-            }
-        });
-        topSearch.addEventListener('keydown', function (e) {
-            if (e.key === 'Enter') {
-                state.testSearch = this.value;
-                var ts = document.getElementById('testsSearch');
-                if (ts) ts.value = this.value;
-                navigate('tests');
-                renderTestsPage();
-            }
-        });
-
-        // Tests page search
-        var testsSearch = document.getElementById('testsSearch');
-        testsSearch.addEventListener('input', function () {
-            state.testSearch = this.value;
-            var ts = document.getElementById('topbarSearch');
-            if (ts) ts.value = this.value;
-            renderTestsPage();
-        });
-
-        // Tests refresh
-        document.getElementById('testsRefresh').addEventListener('click', function () {
-            loadTests();
-        });
-
-        // Patient form toggle
-        var patientForm = document.getElementById('patientForm');
-        document.getElementById('togglePatientForm').addEventListener('click', function () {
-            patientForm.classList.toggle('open');
-        });
-
-        // Appointment form toggle
-        var apptForm = document.getElementById('apptForm');
-        document.getElementById('toggleApptForm').addEventListener('click', function () {
-            apptForm.classList.toggle('open');
-        });
-
-        // Close form buttons
-        document.addEventListener('click', function (e) {
-            var closer = e.target.closest('[data-close-form]');
-            if (closer) {
-                var id = closer.getAttribute('data-close-form');
-                var form = document.getElementById(id);
-                if (form) form.classList.remove('open');
-            }
-        });
-
-        // Save buttons (honest — no fake success)
-        document.getElementById('savePatientBtn').addEventListener('click', function () {
-            showToast('Patient registration is not connected yet. Backend API is required.', 'warn');
-        });
-        document.getElementById('saveApptBtn').addEventListener('click', function () {
-            showToast('Appointment scheduling is not connected yet. Backend API is required.', 'warn');
-        });
-
-        // Notifications button
-        var notifBtn = document.querySelector('.icon-btn[aria-label="Notifications"]');
-        if (notifBtn) {
-            notifBtn.addEventListener('click', function () {
-                showToast('No new notifications.', 'info');
-            });
-        }
-
-        /* ----- Queue page wiring ----- */
         var addBtn = document.getElementById('qAddPatientBtn');
-        if (addBtn) addBtn.addEventListener('click', addPatientToQueue);
+        if (addBtn) addBtn.addEventListener('click', addPatient);
 
-        var computeBtn = document.getElementById('queueComputeBtn');
-        if (computeBtn) computeBtn.addEventListener('click', function () { computeQueue(true); });
-
-        var clearBtn = document.getElementById('queueClearBtn');
-        if (clearBtn) clearBtn.addEventListener('click', clearQueue);
-
-        var patIdInput = document.getElementById('qPatientId');
-        if (patIdInput) {
-            patIdInput.addEventListener('keydown', function (e) {
-                if (e.key === 'Enter') addPatientToQueue();
+        var pidInput = document.getElementById('qPatientId');
+        if (pidInput) {
+            pidInput.addEventListener('keydown', function (e) {
+                if (e.key === 'Enter') addPatient();
             });
         }
 
-        document.addEventListener('click', function (e) {
-            var rem = e.target.closest('[data-remove-patient]');
-            if (rem) {
-                removePatientFromQueue(rem.getAttribute('data-remove-patient'));
-            }
+        var refreshBtn = document.getElementById('queueRefreshBtn');
+        if (refreshBtn) refreshBtn.addEventListener('click', function () {
+            refreshAll();
         });
 
-        // Render queue initial state
-        renderQueueTestPicker();
-        renderQueuePatients();
-        renderQueueEmptyPanels();
+        var resetBtn = document.getElementById('queueResetBtn');
+        if (resetBtn) resetBtn.addEventListener('click', resetQueue);
 
-        // Initial loads
-        renderStats();
-        renderTestsPage();
-        renderDashboardTests();
+        var centresRefresh = document.getElementById('centresRefreshBtn');
+        if (centresRefresh) centresRefresh.addEventListener('click', function () {
+            loadCentres().then(loadQueue);
+        });
+
+        var scheduleRefresh = document.getElementById('scheduleRefreshBtn');
+        if (scheduleRefresh) scheduleRefresh.addEventListener('click', function () {
+            refreshAll();
+        });
+
+        // Initial load
+        renderHealth();
+        renderCurrentPage();
         loadHealth();
         loadTests();
+        loadCentres();
+        loadPatients().then(function () {
+            loadQueue();
+        });
 
         // Health polling
         setInterval(loadHealth, 20000);
+
+        // Patients + queue auto-refresh (multi-device sync)
+        setInterval(function () {
+            if (state.page === 'overview' || state.page === 'queue' ||
+                state.page === 'centres' || state.page === 'schedule') {
+                loadPatients().then(function () {
+                    if (state.patients.length > 0) loadQueue();
+                });
+            }
+        }, 10000);
     }
 
     if (document.readyState === 'loading') {
