@@ -782,7 +782,6 @@ button{font-family:inherit;}
     renderCurrentPage();
     return apiGet('/api/centres').then(function (data) {
       state.centres = (data && Array.isArray(data.centres)) ? data.centres : [];
-      // Update countdown targets
       var now = Date.now();
       state.centres.forEach(function (c) {
         if (c.status === 'BUSY' && c.remainingSeconds > 0) {
@@ -988,7 +987,6 @@ button{font-family:inherit;}
           }
           var testsJson = XLSX.utils.sheet_to_json(testsSheet);
           var centresJson = XLSX.utils.sheet_to_json(centresSheet);
-          // Normalize column names to expected keys
           config = {
             tests: testsJson.map(function (r) {
               return {
@@ -1176,9 +1174,21 @@ button{font-family:inherit;}
     ].join('');
   }
 
+  // ═════════════════════════════════════════════════════════════
+  // FIXED: renderTestPicker() — preserves selected checkboxes
+  // across re-renders triggered by polling / loadTests / navigation
+  // ═════════════════════════════════════════════════════════════
   function renderTestPicker() {
     var el = document.getElementById('qTestPicker');
     if (!el) return;
+
+    // Preserve selected tests before rebuilding the picker
+    var selectedTestIds = Array.from(
+      el.querySelectorAll('input[type="checkbox"]:checked')
+    ).map(function (cb) {
+      return cb.value;
+    });
+
     if (state.testsLoading) {
       el.innerHTML = '<div style="padding:16px;text-align:center;color:var(--text-3);font-size:12.5px;"><div class="spinner" style="margin-bottom:8px;"></div>Loading tests…</div>';
       return;
@@ -1201,11 +1211,27 @@ button{font-family:inherit;}
         '<span style="font-size:11.5px;color:var(--text-3);">' + escapeHtml(t.durationMinutes) + ' min</span>' +
       '</label>';
     }).join('');
+
     el.querySelectorAll('input[type="checkbox"]').forEach(function (cb) {
+
+      // Restore the previous selection
+      cb.checked = selectedTestIds.includes(cb.value);
+
+      var lbl = cb.closest('.test-pick');
+
+      if (lbl) {
+        lbl.classList.toggle('checked', cb.checked);
+      }
+
+      // Update the visual selection when clicked
       cb.addEventListener('change', function () {
-        var lbl = cb.closest('.test-pick');
-        if (lbl) lbl.classList.toggle('checked', cb.checked);
+        var label = cb.closest('.test-pick');
+
+        if (label) {
+          label.classList.toggle('checked', cb.checked);
+        }
       });
+
     });
   }
 
@@ -1285,18 +1311,15 @@ button{font-family:inherit;}
       var status = c.status || 'AVAILABLE';
       var live = queueById[c.id];
       var util = live ? live.utilization : null;
-      var busyMin = live ? live.busyMinutes : null;
       var duration = c.durationMinutes != null ? c.durationMinutes : c.duration;
       var cardCls = 'centre-card';
       if (status === 'BUSY') cardCls += ' busy';
       else if (status === 'AWAITING_CONFIRMATION') cardCls += ' awaiting';
 
-      // Status badge
       var badge = '<span class="badge badge-green">Available</span>';
       if (status === 'BUSY') badge = '<span class="badge badge-blue">In Progress</span>';
       else if (status === 'AWAITING_CONFIRMATION') badge = '<span class="badge badge-amber">Awaiting Confirmation</span>';
 
-      // Body content
       var body = '';
       if (status === 'AVAILABLE') {
         body = 'Completed: <strong>' + (c.completedCount || 0) + '</strong>' +
@@ -1317,7 +1340,6 @@ button{font-family:inherit;}
           'Elapsed: <strong>' + fmtSeconds(c.elapsedSeconds || 0) + '</strong>';
       }
 
-      // Actions
       var actions = '';
       if (status === 'AVAILABLE') {
         actions = '<div class="centre-actions">' +
@@ -1329,7 +1351,6 @@ button{font-family:inherit;}
         '</div>';
       }
 
-      // Compact view for Overview
       if (compact) {
         return '<div class="' + cardCls + '">' +
           '<div class="centre-head">' +
@@ -1360,7 +1381,6 @@ button{font-family:inherit;}
       '</div>';
     }).join('');
 
-    // Bind action handlers
     container.querySelectorAll('[data-assign]').forEach(function (btn) {
       btn.addEventListener('click', function () {
         assignNext(btn.getAttribute('data-assign'));
@@ -1372,7 +1392,6 @@ button{font-family:inherit;}
       });
     });
 
-    // Refresh countdowns after render
     tickCountdowns();
   }
 
@@ -1537,13 +1556,11 @@ button{font-family:inherit;}
 
   // ---------- Init ----------
   function init() {
-    // Greeting
     var now = new Date();
     var hour = now.getHours();
     var ge = document.getElementById('greeting');
     if (ge) ge.textContent = hour < 12 ? 'Good Morning' : (hour < 17 ? 'Good Afternoon' : 'Good Evening');
 
-    // Navigation
     document.querySelectorAll('.nav-item').forEach(function (n) {
       n.addEventListener('click', function () { navigate(n.getAttribute('data-page')); });
     });
@@ -1556,7 +1573,6 @@ button{font-family:inherit;}
     var so = document.getElementById('sidebarOverlay');
     if (so) so.addEventListener('click', closeSidebar);
 
-    // Form actions
     var addBtn = document.getElementById('qAddPatientBtn');
     if (addBtn) addBtn.addEventListener('click', addPatient);
     var pidIn = document.getElementById('qPatientName');
@@ -1570,13 +1586,11 @@ button{font-family:inherit;}
     var sr = document.getElementById('scheduleRefreshBtn');
     if (sr) sr.addEventListener('click', refreshAll);
 
-    // Import
     var importBtn = document.getElementById('centresImportBtn');
     if (importBtn) importBtn.addEventListener('click', openImportModal);
     var fileIn = document.getElementById('importFileInput');
     if (fileIn) fileIn.addEventListener('change', function () { handleFileSelected(fileIn.files[0]); });
 
-    // Drag & drop on dropzone
     var dz = document.getElementById('importDropzone');
     if (dz) {
       dz.addEventListener('dragover', function (e) { e.preventDefault(); dz.style.borderColor = 'var(--primary)'; });
@@ -1588,13 +1602,11 @@ button{font-family:inherit;}
       });
     }
 
-    // Close modal on overlay click
     var modal = document.getElementById('importModal');
     if (modal) modal.addEventListener('click', function (e) {
       if (e.target === modal) closeImportModal();
     });
 
-    // Initial data load
     renderHealth();
     renderNextPatientId();
     renderCurrentPage();
@@ -1603,14 +1615,10 @@ button{font-family:inherit;}
     loadCentres();
     loadPatients().then(loadQueue);
 
-    // Health polling (20s)
     setInterval(loadHealth, 20000);
-
-    // Live data polling (2s) with single-instance guard
     setInterval(pollTick, 2000);
   }
 
-  // Expose for inline handlers
   window.openImportModal = openImportModal;
   window.closeImportModal = closeImportModal;
   window.applyImport = applyImport;
