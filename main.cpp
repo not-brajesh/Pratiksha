@@ -1115,4 +1115,64 @@ int createServerSocket() {
         cerr << "[ERROR] setsockopt(): " << strerror(errno) << endl;
         close(s); return -1;
     }
-    sockaddr_in
+    sockaddr_in addr{};
+    addr.sin_family = AF_INET;
+    addr.sin_port = htons(Config::PORT);
+    addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+    if (::bind(s, reinterpret_cast<sockaddr*>(&addr), sizeof(addr)) < 0) {
+        cerr << "[ERROR] bind(): " << strerror(errno) << endl;
+        close(s); return -1;
+    }
+    if (::listen(s, Config::BACKLOG) < 0) {
+        cerr << "[ERROR] listen(): " << strerror(errno) << endl;
+        close(s); return -1;
+    }
+    return s;
+}
+
+// ------------------------------------------------------------
+// Main
+// ------------------------------------------------------------
+
+int main() {
+    signal(SIGPIPE, SIG_IGN);
+    cout << "\n========================================\n"
+         << "       PRATIKSHA HOSPITAL SYSTEM\n"
+         << "              v" << Config::VERSION << "\n"
+         << "========================================\n";
+
+    ServerState state;
+    int srv = createServerSocket();
+    if (srv < 0) { cerr << "[FATAL] Server could not start." << endl; return 1; }
+
+    cout << "[SUCCESS] C++ server started." << endl
+         << "[SERVER] http://127.0.0.1:" << Config::PORT << endl
+         << "[API] GET    /api/health" << endl
+         << "[API] GET    /api/tests" << endl
+         << "[API] GET    /api/centres" << endl
+         << "[API] GET    /api/centres/{id}/next" << endl
+         << "[API] GET    /api/patients" << endl
+         << "[API] POST   /api/patients" << endl
+         << "[API] DELETE /api/patients/{id}" << endl
+         << "[API] POST   /api/tests/complete" << endl
+         << "[API] GET    /api/queue" << endl
+         << "[API] POST   /api/queue/reset" << endl
+         << "[INFO] Press Control+C to stop." << endl
+         << "========================================\n";
+
+    while (true) {
+        sockaddr_in ca{};
+        socklen_t cl = sizeof(ca);
+        int cs = ::accept(srv, reinterpret_cast<sockaddr*>(&ca), &cl);
+        if (cs < 0) {
+            if (errno == EINTR) continue;
+            cerr << "[ERROR] accept(): " << strerror(errno) << endl;
+            continue;
+        }
+        handleClient(cs, state);
+        shutdown(cs, SHUT_RDWR);
+        close(cs);
+    }
+    close(srv);
+    return 0;
+}
