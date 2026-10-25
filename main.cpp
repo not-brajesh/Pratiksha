@@ -24,18 +24,24 @@ using namespace std;
 
 // ============================================================
 // PRATIKSHA — Patient Routing & Intelligent Test Queue Handling
-// Backend v1.7
+// Backend v1.7.1
 //
-// Changes over v1.6:
-//   [Step 5] Persistent event history for Live Timeline.
-//            - EventLogEntry struct records every test start / complete
-//              with WALL-CLOCK epoch ms (real IST reference, not steady)
-//            - ServerState keeps bounded ring buffer (MAX_EVENT_LOG)
-//            - handleNextPatient logs a "start" event after reservation
-//            - handleCompleteTest logs a "complete" event with actual
-//              elapsed seconds before clearing centre timestamps
-//            - GET /api/events returns chronological event history
-//            - reset() clears eventLog; nextEventId never rewinds
+// Changes over v1.7.0:
+//   [Timer-fix review] Live Timeline countdown smoothness fix
+//   is handled FRONTEND-ONLY per instructions (index.html:
+//   _receivedAt drift compensation + 1s re-render). No backend
+//   functional changes required — /api/centres already returns
+//   elapsedSeconds / remainingSeconds / status with steady_clock
+//   accuracy, which the frontend uses as its base snapshot.
+//
+// Existing backend features (unchanged since v1.7.0):
+//   [Step 1] Auto-generated patient IDs (P001, P002, …)
+//   [Step 2] Single machine per testing centre (A1/B1/C1/D1)
+//   [Step 3] JSON config import (POST /api/configuration)
+//   [Step 4] Live centre timing: steady_clock timestamps,
+//            /api/centres → {status, elapsedSeconds,
+//            remainingSeconds}, AWAITING_CONFIRMATION state
+//   [Step 5] Persistent event history (GET /api/events)
 // ============================================================
 
 namespace Config {
@@ -46,10 +52,10 @@ namespace Config {
     constexpr long INF_TIME = 1000000000L;
     constexpr double LAMBDA = 0.5;
     constexpr int MOVE_TIME_MINUTES = 3;
-    constexpr size_t MAX_EVENT_LOG = 500;       // [Step 5] bounded history
+    constexpr size_t MAX_EVENT_LOG = 500;
 
     const string APP_NAME = "PRATIKSHA";
-    const string VERSION = "1.7.0";
+    const string VERSION = "1.7.1";
 }
 
 // ------------------------------------------------------------
@@ -101,10 +107,9 @@ struct TestingCentre {
     bool available() const { return currentPatient.empty(); }
 };
 
-// [Step 5] Permanent event log entry — real wall-clock reference
 struct EventLogEntry {
     int id = 0;
-    long long wallMs = 0;            // system_clock epoch ms (real IST)
+    long long wallMs = 0;
     string type;                     // "start" | "complete"
     string patientId;
     string patientName;
@@ -112,8 +117,8 @@ struct EventLogEntry {
     string testName;
     string centreId;
     string centreName;
-    int durationMinutes = 0;         // configured duration
-    long long actualElapsedSeconds = 0; // only meaningful for "complete"
+    int durationMinutes = 0;
+    long long actualElapsedSeconds = 0;
 };
 
 struct QueueStep {
@@ -166,13 +171,15 @@ long long currentSteadyMs() {
         steady_clock::now().time_since_epoch()).count();
 }
 
-// [Step 5] Wall clock ms — real time for IST display
 long long currentWallMs() {
     using namespace chrono;
     return duration_cast<milliseconds>(
         system_clock::now().time_since_epoch()).count();
 }
 
+// Returns int seconds remaining; 0 if not applicable.
+// Frontend treats this as a snapshot at fetch time and adds
+// its own client-side drift.
 int centreRemainingSeconds(const TestingCentre& c) {
     if (c.currentPatient.empty()) return 0;
     if (c.expectedCompletionMs <= 0) return 0;
@@ -181,6 +188,8 @@ int centreRemainingSeconds(const TestingCentre& c) {
     return (int)((c.expectedCompletionMs - now) / 1000);
 }
 
+// Returns int seconds elapsed since test start; 0 if not applicable.
+// Frontend adds client-side drift on top of this snapshot.
 int centreElapsedSeconds(const TestingCentre& c) {
     if (c.currentPatient.empty()) return 0;
     if (c.startedAtMs <= 0) return 0;
@@ -209,9 +218,8 @@ public:
 
     int nextPatientNumber = 1;
 
-    // [Step 5] Event history
     vector<EventLogEntry> eventLog;
-    int nextEventId = 1;  // never rewinds (IDs stay unique across resets)
+    int nextEventId = 1;
 
     ServerState() {
         tests = {
@@ -334,8 +342,7 @@ public:
         patients.clear();
         nextSeq = 0;
         nextPatientNumber = 1;
-        eventLog.clear();       // [Step 5] wipe history on full reset
-        // nextEventId intentionally NOT reset — IDs stay globally unique.
+        eventLog.clear();
         for (auto& c : centres) {
             c.currentPatient = "";
             c.currentTestId = "";
@@ -347,7 +354,6 @@ public:
         }
     }
 
-    // [Step 5] Append an event to the bounded history.
     void logEvent(const string& type,
                   const string& patientId, const string& patientName,
                   const string& testId, const string& testName,
@@ -1214,7 +1220,6 @@ string handleResetQueue(ServerState& st) {
         "\"nextPatientId\":\"" + escapeJson(st.peekNextPatientId()) + "\"}");
 }
 
-// [Step 5] GET /api/events — chronological event history
 string handleGetEvents(const ServerState& st) {
     ostringstream j;
     j << "{\"success\":true,"
@@ -1222,7 +1227,6 @@ string handleGetEvents(const ServerState& st) {
       << "\"total\":" << st.eventLog.size() << ","
       << "\"events\":[";
 
-    // Preserve insertion order (already chronological by wallMs).
     for (size_t i = 0; i < st.eventLog.size(); ++i) {
         const auto& e = st.eventLog[i];
         if (i) j << ",";
@@ -1244,7 +1248,6 @@ string handleGetEvents(const ServerState& st) {
     return jsonResponse(200, "OK", j.str());
 }
 
-// ---- GET /api/centres/{id}/next ----
 string handleNextPatient(ServerState& st, const string& centreId) {
     TestingCentre* centre = st.findCentre(centreId);
     if (!centre) return errorResponse(404, "Not Found", "Centre not found");
@@ -1327,7 +1330,6 @@ string handleNextPatient(ServerState& st, const string& centreId) {
     centre->currentTestId = chosen->testId;
     centre->remainingMin = centre->durationMinutes;
 
-    // [Step 5] Log "start" event
     st.logEvent(
         "start",
         p->id, p->name,
@@ -1351,7 +1353,6 @@ string handleNextPatient(ServerState& st, const string& centreId) {
     return jsonResponse(200, "OK", j.str());
 }
 
-// ---- POST /api/tests/complete ----
 string handleCompleteTest(ServerState& st, const string& body) {
     if (body.empty()) return errorResponse(400, "Bad Request", "Request body is empty");
 
@@ -1407,7 +1408,6 @@ string handleCompleteTest(ServerState& st, const string& body) {
             "Test does not match the centre assignment");
     }
 
-    // [Step 5] Compute actual elapsed BEFORE clearing timestamps.
     long long actualElapsedSec = 0;
     if (assignedCentre->startedAtMs > 0) {
         long long deltaMs = currentSteadyMs() - assignedCentre->startedAtMs;
@@ -1431,7 +1431,6 @@ string handleCompleteTest(ServerState& st, const string& body) {
     for (auto& t : p->testStates) if (t.status != TestStatus::COMPLETED) { allDone = false; break; }
     if (allDone) p->status = PatientStatus::COMPLETED;
 
-    // [Step 5] Log "complete" event
     st.logEvent(
         "complete",
         patientId, p->name,
@@ -1449,7 +1448,6 @@ string handleCompleteTest(ServerState& st, const string& body) {
     return jsonResponse(200, "OK", j.str());
 }
 
-// ---- GET /api/configuration ----
 string handleGetConfiguration(const ServerState& st) {
     ostringstream j;
     j << "{\"success\":true,"
@@ -1476,7 +1474,6 @@ string handleGetConfiguration(const ServerState& st) {
     return jsonResponse(200, "OK", j.str());
 }
 
-// ---- POST /api/configuration ----
 string handleImportConfiguration(ServerState& st, const string& body) {
     if (body.empty())
         return errorResponse(400, "Bad Request", "Request body is empty");
@@ -1608,7 +1605,6 @@ string handleImportConfiguration(ServerState& st, const string& body) {
     return handleGetConfiguration(st);
 }
 
-// ---- Serve frontend ----
 string handleHome() {
     FILE* f = fopen("index.html", "rb");
     if (!f) return errorResponse(500, "Internal Server Error", "index.html could not be opened");
