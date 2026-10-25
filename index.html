@@ -656,7 +656,7 @@ button{font-family:inherit;}
     queue: null,
     queueLoading: false,
     queueError: null,
-    queueFetchedAt: null   // NEW: reference time for IST predicted schedule
+    queueFetchedAt: null
   };
 
   var centreEndMs = {};
@@ -711,7 +711,6 @@ button{font-family:inherit;}
     return m + 'm ' + (s < 10 ? '0' + s : s) + 's';
   }
 
-  // NEW: IST formatter for predicted/live timestamps
   function formatISTTime(date) {
     return new Intl.DateTimeFormat('en-IN', {
       timeZone: 'Asia/Kolkata',
@@ -803,12 +802,21 @@ button{font-family:inherit;}
     });
   }
 
+  // ═════════════════════════════════════════════════════════════
+  // FIX 1: loadCentres() — stamp _receivedAt on each centre so the
+  // Live Timeline can compute live elapsed/remaining on the client.
+  // ═════════════════════════════════════════════════════════════
   function loadCentres() {
     state.centresLoading = true;
     state.centresError = null;
     renderCurrentPage();
     return apiGet('/api/centres').then(function (data) {
-      state.centres = (data && Array.isArray(data.centres)) ? data.centres : [];
+      state.centres = (data && Array.isArray(data.centres))
+        ? data.centres.map(function (c) {
+            c._receivedAt = Date.now();
+            return c;
+          })
+        : [];
       var now = Date.now();
       state.centres.forEach(function (c) {
         if (c.status === 'BUSY' && c.remainingSeconds > 0) {
@@ -861,10 +869,7 @@ button{font-family:inherit;}
     renderCurrentPage();
     return apiGet('/api/queue').then(function (data) {
       state.queue = data;
-
-      // NEW: record when this predicted schedule was calculated
       state.queueFetchedAt = Date.now();
-
       state.queueLoading = false;
       state.queueError = null;
       renderCurrentPage();
@@ -1463,7 +1468,6 @@ button{font-family:inherit;}
     }).join('');
   }
 
-  // UPDATED: Predicted Timeline now shows IST clock time alongside "N min"
   function renderScheduleTimeline(container) {
     if (!container) return;
 
@@ -1480,7 +1484,6 @@ button{font-family:inherit;}
       return;
     }
 
-    // Reference time for this predicted schedule
     var referenceTime = state.queueFetchedAt || Date.now();
 
     container.innerHTML = state.queue.events.map(function (e) {
@@ -1491,7 +1494,6 @@ button{font-family:inherit;}
       var testName = e.testName || getTestName(e.testId);
       var centreName = e.centreName || '';
 
-      // Predicted clock time = reference time + predicted minutes
       var predictedTimestamp = referenceTime + (Number(e.time) * 60 * 1000);
       var predictedTime = formatISTTime(new Date(predictedTimestamp));
 
@@ -1519,7 +1521,11 @@ button{font-family:inherit;}
     }).join('');
   }
 
-  // NEW: Live Timeline — actual running tests at each centre
+  // ═════════════════════════════════════════════════════════════
+  // FIX 2/3: Live Timeline — compute live elapsed/remaining from
+  // _receivedAt so timers tick smoothly without extra API calls.
+  // Display now uses fmtSeconds() (m:ss) instead of minutes only.
+  // ═════════════════════════════════════════════════════════════
   function renderLiveTimeline(container) {
     if (!container) return;
 
@@ -1538,8 +1544,18 @@ button{font-family:inherit;}
         return p.id === c.currentPatient;
       });
 
-      var elapsedSeconds = Number(c.elapsedSeconds || 0);
-      var remainingSeconds = Number(c.remainingSeconds || 0);
+      // FIX 2: adjust for time since backend snapshot (browser-local ticking)
+      var driftSec = Math.floor((now - Number(c._receivedAt || now)) / 1000);
+
+      var elapsedSeconds = Math.max(
+        0,
+        Number(c.elapsedSeconds || 0) + driftSec
+      );
+
+      var remainingSeconds = Math.max(
+        0,
+        Number(c.remainingSeconds || 0) - driftSec
+      );
 
       var startedAt = new Date(now - elapsedSeconds * 1000);
       var expectedEnd = new Date(now + remainingSeconds * 1000);
@@ -1573,13 +1589,15 @@ button{font-family:inherit;}
       var testName = getTestName(e.testId);
       var startTime = formatISTTime(e.startedAt);
       var expectedEnd = formatISTTime(e.expectedEnd);
-      var elapsedMinutes = Math.floor(e.elapsedSeconds / 60);
-      var remainingMinutes = Math.ceil(e.remainingSeconds / 60);
+
+      // FIX 3: use fmtSeconds() so seconds tick visibly (m:ss)
+      var elapsedDisplay = fmtSeconds(e.elapsedSeconds);
+      var remainingDisplay = fmtSeconds(e.remainingSeconds);
 
       return (
         '<div class="timeline-row">' +
           '<span class="timeline-time">' +
-            elapsedMinutes + ' min' +
+            elapsedDisplay +
           '</span>' +
           '<span class="timeline-event">' +
             '<strong style="color:var(--green);">● In Progress</strong>' +
@@ -1593,13 +1611,22 @@ button{font-family:inherit;}
             '<div style="font-size:11px;color:var(--text-3);margin-top:5px;line-height:1.8;">' +
               'Started: ' + escapeHtml(startTime) +
               '<br>Expected completion: ' + escapeHtml(expectedEnd) +
-              '<br>Elapsed: ' + elapsedMinutes + ' min · Remaining: ' + remainingMinutes + ' min' +
+              '<br>Elapsed: ' + elapsedDisplay +
+              ' · Remaining: ' + remainingDisplay +
             '</div>' +
           '</span>' +
         '</div>'
       );
     }).join('');
   }
+
+  // FIX 4: Re-render Live Timeline every second so seconds tick smoothly
+  // between backend 2-second polling refreshes. Only runs on Schedule page.
+  setInterval(function () {
+    if (state.page === 'schedule') {
+      renderLiveTimeline(document.getElementById('liveTimeline'));
+    }
+  }, 1000);
 
   function renderOverviewSchedule() {
     var el = document.getElementById('overviewSchedule');
@@ -1640,7 +1667,6 @@ button{font-family:inherit;}
   function renderSchedulePage() {
     renderScheduleSequence(document.getElementById('scheduleSequence'));
     renderScheduleTimeline(document.getElementById('scheduleTimeline'));
-    // NEW: also render Live Timeline
     renderLiveTimeline(document.getElementById('liveTimeline'));
   }
   function renderCurrentPage() {
