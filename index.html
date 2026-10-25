@@ -1,0 +1,1628 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>PRATIKSHA — Diagnostic Queue</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg:#F5F7FA;--card:#FFF;--primary:#2563EB;--primary-hover:#1D4ED8;
+  --primary-soft:#EFF6FF;--secondary:#0D9488;--secondary-soft:#F0FDFA;
+  --violet:#7C3AED;--violet-soft:#F5F3FF;--text:#0F172A;--text-2:#475569;
+  --text-3:#64748B;--text-4:#94A3B8;--border:#E2E8F0;--border-2:#F1F5F9;
+  --green:#16A34A;--green-soft:#F0FDF4;--green-border:#BBF7D0;
+  --red:#DC2626;--red-soft:#FEF2F2;--red-border:#FECACA;
+  --amber:#D97706;--amber-soft:#FFFBEB;--amber-border:#FDE68A;
+  --radius-sm:10px;--radius:14px;--radius-xl:22px;
+  --shadow-sm:0 1px 2px rgba(15,23,42,0.04);
+  --shadow:0 4px 16px rgba(15,23,42,0.06);
+  --shadow-lg:0 16px 40px rgba(15,23,42,0.10);
+  --sidebar-w:260px;--ease:0.18s ease;
+}
+html,body{height:100%;}
+body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+  background:var(--bg);color:var(--text);font-size:14px;line-height:1.5;
+  -webkit-font-smoothing:antialiased;}
+button{font-family:inherit;}
+.icon{flex-shrink:0;display:inline-block;vertical-align:middle;}
+.app{min-height:100vh;}
+.sidebar{position:fixed;top:0;left:0;bottom:0;width:var(--sidebar-w);
+  background:var(--card);border-right:1px solid var(--border);
+  display:flex;flex-direction:column;z-index:40;transition:transform 0.25s ease;}
+.sidebar-brand{display:flex;align-items:center;gap:12px;padding:22px 20px;
+  border-bottom:1px solid var(--border-2);}
+.brand-mark{width:42px;height:42px;border-radius:13px;
+  background:linear-gradient(135deg,var(--primary) 0%,#3B82F6 100%);
+  color:#fff;display:flex;align-items:center;justify-content:center;
+  font-weight:800;font-size:19px;box-shadow:0 4px 14px rgba(37,99,235,0.32);flex-shrink:0;}
+.brand-text{display:flex;flex-direction:column;min-width:0;}
+.brand-name{font-weight:700;font-size:14px;letter-spacing:0.06em;}
+.brand-sub{font-size:12px;color:var(--text-3);font-weight:500;}
+.sidebar-nav{flex:1;overflow-y:auto;padding:14px 12px 8px;display:flex;flex-direction:column;gap:2px;}
+.nav-section-label{font-size:10.5px;font-weight:700;letter-spacing:0.09em;
+  text-transform:uppercase;color:var(--text-4);padding:10px 12px 6px;}
+.nav-item{display:flex;align-items:center;gap:12px;padding:10px 12px;
+  border-radius:var(--radius-sm);color:var(--text-2);font-weight:500;font-size:13.5px;
+  cursor:pointer;border:none;background:transparent;width:100%;text-align:left;
+  transition:background var(--ease),color var(--ease);}
+.nav-item:hover{background:#F8FAFC;color:var(--text);}
+.nav-item.active{background:var(--primary-soft);color:var(--primary);font-weight:600;}
+.nav-item .icon{color:var(--text-3);transition:color var(--ease);}
+.nav-item.active .icon{color:var(--primary);}
+.sidebar-status{margin:12px;padding:14px;border-radius:var(--radius);
+  background:#F8FAFC;border:1px solid var(--border-2);}
+.status-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;gap:8px;}
+.status-label{font-size:10.5px;font-weight:700;letter-spacing:0.08em;
+  text-transform:uppercase;color:var(--text-3);}
+.status-pill{display:inline-flex;align-items:center;gap:6px;padding:4px 9px;
+  border-radius:999px;font-size:11px;font-weight:600;background:var(--green-soft);
+  color:var(--green);border:1px solid var(--green-border);white-space:nowrap;}
+.status-pill.pending{background:var(--amber-soft);color:var(--amber);border-color:var(--amber-border);}
+.status-pill.disconnected{background:var(--red-soft);color:var(--red);border-color:var(--red-border);}
+.dot-live{width:7px;height:7px;border-radius:50%;background:currentColor;animation:pulse 2s infinite;}
+.status-pill.pending .dot-live,.status-pill.disconnected .dot-live{animation:none;box-shadow:none;}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(22,163,74,0.45);}70%{box-shadow:0 0 0 6px rgba(22,163,74,0);}100%{box-shadow:0 0 0 0 rgba(22,163,74,0);}}
+.status-detail{font-size:12px;color:var(--text-3);line-height:1.4;}
+.next-id-box{margin:12px;padding:12px 14px;border-radius:var(--radius);
+  background:var(--primary-soft);border:1px solid #BFDBFE;}
+.next-id-label{font-size:10.5px;font-weight:700;letter-spacing:0.08em;
+  text-transform:uppercase;color:var(--primary);margin-bottom:4px;}
+.next-id-value{font-size:18px;font-weight:800;color:var(--primary);
+  font-family:ui-monospace,monospace;letter-spacing:0.02em;}
+.main{margin-left:var(--sidebar-w);min-height:100vh;display:flex;flex-direction:column;}
+.topbar{position:sticky;top:0;background:rgba(255,255,255,0.85);
+  backdrop-filter:saturate(180%) blur(12px);-webkit-backdrop-filter:saturate(180%) blur(12px);
+  border-bottom:1px solid var(--border);padding:14px 28px;
+  display:flex;align-items:center;gap:20px;z-index:30;}
+.menu-btn{display:none;}
+.topbar-title h1{font-size:16px;font-weight:700;letter-spacing:-0.01em;line-height:1.3;}
+.topbar-sub{display:block;font-size:12px;color:var(--text-3);font-weight:500;}
+.topbar-actions{margin-left:auto;display:flex;align-items:center;gap:16px;}
+.live-datetime{display:flex;flex-direction:column;align-items:flex-end;line-height:1.15;}
+.live-clock{font-family:ui-monospace,SFMono-Regular,monospace;font-weight:700;
+  font-size:14px;color:var(--primary);letter-spacing:0.03em;}
+.live-date{font-size:11px;color:var(--text-3);font-weight:500;margin-top:2px;}
+.live-tag{font-size:9px;font-weight:800;color:var(--text-4);
+  letter-spacing:0.12em;margin-top:1px;}
+.avatar{width:36px;height:36px;border-radius:10px;
+  background:linear-gradient(135deg,#0F172A 0%,#334155 100%);color:#fff;
+  display:inline-flex;align-items:center;justify-content:center;
+  font-weight:600;font-size:12.5px;}
+.content{padding:28px;max-width:1440px;width:100%;margin:0 auto;flex:1;}
+.page{display:none;animation:fadeIn 0.22s ease;}
+.page.active{display:block;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:none;}}
+.welcome{display:flex;align-items:center;justify-content:space-between;gap:24px;
+  padding:28px;border-radius:var(--radius-xl);
+  background:linear-gradient(135deg,#FFF 0%,#F8FAFC 100%);
+  border:1px solid var(--border);margin-bottom:20px;flex-wrap:wrap;box-shadow:var(--shadow-sm);}
+.welcome-text{flex:1;min-width:240px;}
+.welcome-eyebrow{font-size:12px;font-weight:700;letter-spacing:0.09em;
+  text-transform:uppercase;color:var(--primary);margin-bottom:8px;}
+.welcome-title{font-size:24px;font-weight:700;letter-spacing:-0.02em;margin-bottom:6px;line-height:1.25;}
+.welcome-sub{font-size:14px;color:var(--text-3);max-width:540px;}
+.welcome-actions{display:flex;gap:10px;flex-wrap:wrap;}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:10px 16px;
+  border-radius:10px;font-size:13.5px;font-weight:600;cursor:pointer;
+  border:1px solid transparent;transition:all var(--ease);white-space:nowrap;text-decoration:none;}
+.btn-primary{background:var(--primary);color:#fff;box-shadow:0 2px 8px rgba(37,99,235,0.24);}
+.btn-primary:hover{background:var(--primary-hover);box-shadow:0 4px 14px rgba(37,99,235,0.32);}
+.btn-secondary{background:#fff;color:var(--text);border-color:var(--border);box-shadow:var(--shadow-sm);}
+.btn-secondary:hover{background:#F8FAFC;border-color:#CBD5E1;}
+.btn-success{background:var(--green);color:#fff;box-shadow:0 2px 8px rgba(22,163,74,0.24);}
+.btn-success:hover{background:#15803D;}
+.btn-warn{background:var(--amber);color:#fff;box-shadow:0 2px 8px rgba(217,119,6,0.24);}
+.btn-warn:hover{background:#B45309;}
+.btn-danger{background:var(--red);color:#fff;box-shadow:0 2px 8px rgba(220,38,38,0.24);}
+.btn-danger:hover{background:#B91C1C;}
+.btn-ghost{background:transparent;color:var(--primary);border-color:transparent;padding:6px 10px;font-size:13px;}
+.btn-ghost:hover{background:var(--primary-soft);}
+.btn:disabled{opacity:0.55;cursor:not-allowed;}
+.btn-sm{padding:6px 10px;font-size:12px;}
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px;}
+.stat-card{background:#fff;border:1px solid var(--border);border-radius:var(--radius);
+  padding:20px;transition:box-shadow var(--ease),transform var(--ease),border-color var(--ease);}
+.stat-card:hover{box-shadow:var(--shadow);transform:translateY(-1px);border-color:#CBD5E1;}
+.stat-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px;}
+.stat-icon{width:42px;height:42px;border-radius:12px;
+  display:inline-flex;align-items:center;justify-content:center;}
+.stat-icon.blue{background:var(--primary-soft);color:var(--primary);}
+.stat-icon.teal{background:var(--secondary-soft);color:var(--secondary);}
+.stat-icon.violet{background:var(--violet-soft);color:var(--violet);}
+.stat-icon.amber{background:var(--amber-soft);color:var(--amber);}
+.stat-value{font-size:28px;font-weight:700;letter-spacing:-0.02em;line-height:1.1;margin-bottom:4px;}
+.stat-label{font-size:13px;color:var(--text-3);font-weight:500;}
+.stat-hint{font-size:11.5px;color:var(--text-4);margin-top:8px;font-weight:500;}
+.stat-hint.warn{color:var(--amber);}
+.section{margin-bottom:24px;}
+.section-head{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin-bottom:12px;}
+.section-title{font-size:15px;font-weight:700;letter-spacing:-0.01em;}
+.section-sub{font-size:13px;color:var(--text-3);margin-top:2px;}
+.card{background:#fff;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;}
+.card-body{padding:20px;}
+.badge{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;
+  border-radius:999px;font-size:11.5px;font-weight:600;border:1px solid transparent;white-space:nowrap;}
+.badge-green{background:var(--green-soft);color:var(--green);border-color:var(--green-border);}
+.badge-grey{background:#F1F5F9;color:var(--text-3);border-color:var(--border);}
+.badge-amber{background:var(--amber-soft);color:var(--amber);border-color:var(--amber-border);}
+.badge-red{background:var(--red-soft);color:var(--red);border-color:var(--red-border);}
+.badge-blue{background:var(--primary-soft);color:var(--primary);border-color:#BFDBFE;}
+.badge-violet{background:var(--violet-soft);color:var(--violet);border-color:#DDD6FE;}
+.loading-state{padding:48px 24px;text-align:center;color:var(--text-3);font-size:13.5px;}
+.spinner{width:24px;height:24px;border:2.5px solid var(--border);
+  border-top-color:var(--primary);border-radius:50%;animation:spin 0.7s linear infinite;
+  margin:0 auto 12px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.empty-state{padding:48px 24px;text-align:center;}
+.empty-icon{width:52px;height:52px;border-radius:14px;background:#F1F5F9;color:var(--text-3);
+  display:inline-flex;align-items:center;justify-content:center;margin-bottom:14px;}
+.empty-title{font-size:14px;font-weight:600;margin-bottom:4px;}
+.empty-desc{font-size:13px;color:var(--text-3);max-width:380px;margin:0 auto;line-height:1.55;}
+.error-state{padding:40px 24px;text-align:center;}
+.error-title{font-size:14px;font-weight:600;margin-bottom:4px;}
+.error-desc{font-size:13px;color:var(--text-3);margin-bottom:16px;max-width:400px;margin-left:auto;margin-right:auto;}
+.form-field{display:flex;flex-direction:column;gap:6px;}
+.form-label{font-size:12.5px;font-weight:600;color:var(--text-2);}
+.form-input,.form-select,.form-textarea{padding:10px 12px;border-radius:10px;
+  border:1px solid var(--border);background:#fff;font-size:13.5px;font-family:inherit;
+  color:var(--text);transition:border-color var(--ease),box-shadow var(--ease);width:100%;}
+.form-input:focus,.form-select:focus,.form-textarea:focus{outline:none;
+  border-color:var(--primary);box-shadow:0 0 0 3px rgba(37,99,235,0.12);}
+.form-input[readonly]{background:#F8FAFC;color:var(--text-3);cursor:not-allowed;}
+.next-id-display{padding:12px 14px;border-radius:10px;background:var(--primary-soft);
+  border:1px solid #BFDBFE;display:flex;align-items:center;justify-content:space-between;}
+.next-id-display .label{font-size:11px;font-weight:700;color:var(--primary);
+  letter-spacing:0.08em;text-transform:uppercase;}
+.next-id-display .value{font-family:ui-monospace,monospace;font-size:20px;
+  font-weight:800;color:var(--primary);}
+.page-header{margin-bottom:20px;display:flex;align-items:flex-start;
+  justify-content:space-between;gap:16px;flex-wrap:wrap;}
+.page-header h2{font-size:20px;font-weight:700;letter-spacing:-0.02em;margin-bottom:4px;}
+.page-header p{font-size:13.5px;color:var(--text-3);}
+.page-header-actions{display:flex;gap:10px;flex-wrap:wrap;}
+.toast{position:fixed;bottom:24px;right:24px;background:#1E293B;color:#fff;
+  padding:12px 16px;border-radius:12px;font-size:13px;font-weight:500;
+  box-shadow:var(--shadow-lg);z-index:100;display:flex;align-items:center;
+  gap:10px;max-width:380px;animation:toastIn 0.22s ease;line-height:1.5;}
+.toast.warn{background:#B45309;}
+.toast.error{background:#B91C1C;}
+.toast.success{background:#15803D;}
+@keyframes toastIn{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:none;}}
+.queue-grid{display:grid;grid-template-columns:380px 1fr;gap:20px;align-items:start;}
+@media(max-width:1024px){.queue-grid{grid-template-columns:1fr;}}
+.test-picker{display:grid;gap:8px;max-height:320px;overflow-y:auto;}
+.test-pick{display:flex;align-items:center;gap:10px;padding:10px 12px;
+  border:1px solid var(--border);border-radius:10px;cursor:pointer;
+  transition:all var(--ease);font-size:13px;}
+.test-pick:hover{border-color:var(--primary);background:#FAFBFC;}
+.test-pick input{accent-color:var(--primary);cursor:pointer;}
+.test-pick.checked{border-color:var(--primary);background:var(--primary-soft);}
+.test-id{display:inline-flex;align-items:center;justify-content:center;
+  min-width:28px;height:28px;padding:0 8px;border-radius:8px;
+  background:var(--primary-soft);color:var(--primary);font-weight:700;font-size:12px;}
+.centre-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;}
+@media(max-width:720px){.centre-grid{grid-template-columns:1fr;}}
+.centre-card{border:1px solid var(--border);border-radius:var(--radius);
+  padding:16px;background:#fff;position:relative;transition:box-shadow var(--ease);}
+.centre-card:hover{box-shadow:var(--shadow);}
+.centre-card.busy{border-color:#BFDBFE;background:linear-gradient(180deg,#F8FBFF 0%,#FFF 60%);}
+.centre-card.awaiting{border-color:var(--amber-border);background:linear-gradient(180deg,#FFFBEB 0%,#FFF 60%);}
+.centre-head{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px;gap:10px;}
+.centre-name{font-weight:600;font-size:14px;}
+.centre-sub{font-size:11px;color:var(--text-3);margin-top:2px;}
+.centre-test-tag{font-size:11px;padding:3px 8px;border-radius:6px;
+  background:var(--primary-soft);color:var(--primary);font-weight:700;white-space:nowrap;}
+.centre-body{font-size:12.5px;color:var(--text-3);line-height:1.7;}
+.centre-body strong{color:var(--text);font-weight:600;}
+.util-bar{height:6px;background:#F1F5F9;border-radius:999px;overflow:hidden;margin-top:6px;}
+.util-fill{height:100%;background:linear-gradient(90deg,var(--primary) 0%,#3B82F6 100%);
+  border-radius:999px;transition:width 0.4s ease;}
+.countdown-block{margin:10px 0;padding:10px 12px;border-radius:10px;
+  background:#F8FAFC;border:1px solid var(--border-2);
+  display:flex;align-items:center;justify-content:space-between;gap:8px;}
+.countdown-label{font-size:10.5px;font-weight:700;color:var(--text-3);
+  text-transform:uppercase;letter-spacing:0.06em;}
+.countdown-value{font-family:ui-monospace,monospace;font-weight:800;
+  font-size:15px;color:var(--primary);}
+.countdown-value.awaiting{color:var(--amber);}
+.centre-actions{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;}
+.centre-actions .btn{flex:1;justify-content:center;}
+.patient-list{display:flex;flex-direction:column;gap:12px;}
+.patient-card{border:1px solid var(--border);border-radius:var(--radius);
+  padding:14px 16px;background:#fff;}
+.patient-head{display:flex;align-items:center;justify-content:space-between;
+  gap:10px;margin-bottom:10px;}
+.patient-id{font-weight:700;font-size:13px;font-family:ui-monospace,monospace;}
+.patient-name{font-size:12px;color:var(--text-3);margin-left:6px;}
+.sequence-list{display:flex;flex-direction:column;gap:2px;margin-top:6px;}
+.sequence-step{display:flex;align-items:center;gap:10px;font-size:12px;
+  color:var(--text-2);padding:6px 0;border-bottom:1px solid var(--border-2);}
+.sequence-step:last-child{border-bottom:none;}
+.step-num{width:22px;height:22px;border-radius:50%;background:var(--primary-soft);
+  color:var(--primary);display:inline-flex;align-items:center;justify-content:center;
+  font-weight:700;font-size:10.5px;flex-shrink:0;}
+.step-test{font-weight:600;color:var(--text);}
+.step-centre{font-family:ui-monospace,monospace;font-size:11px;color:var(--text-3);margin-left:4px;}
+.step-time{color:var(--text-4);margin-left:auto;font-family:ui-monospace,monospace;font-size:11px;}
+.timeline{display:flex;flex-direction:column;gap:4px;max-height:520px;overflow-y:auto;}
+.timeline-row{display:flex;gap:12px;align-items:flex-start;font-size:12.5px;
+  padding:7px 0;border-bottom:1px solid var(--border-2);}
+.timeline-row:last-child{border-bottom:none;}
+.timeline-time{font-family:ui-monospace,monospace;font-size:11.5px;color:var(--text-3);
+  min-width:56px;padding-top:1px;}
+.timeline-event{flex:1;color:var(--text-2);line-height:1.5;}
+.timeline-event strong{color:var(--text);font-weight:600;}
+.timeline-event .centre-chip{display:inline-block;padding:1px 6px;border-radius:5px;
+  background:#F1F5F9;color:var(--text-3);font-size:10.5px;font-weight:700;
+  font-family:ui-monospace,monospace;margin-left:4px;}
+.modal-overlay{position:fixed;inset:0;background:rgba(15,23,42,0.5);
+  display:flex;align-items:center;justify-content:center;z-index:150;
+  backdrop-filter:blur(4px);padding:20px;}
+.modal{background:#fff;border-radius:var(--radius-xl);max-width:560px;width:100%;
+  box-shadow:var(--shadow-lg);max-height:90vh;overflow-y:auto;}
+.modal-header{padding:20px 24px;border-bottom:1px solid var(--border-2);
+  display:flex;align-items:center;justify-content:space-between;gap:12px;}
+.modal-title{font-size:16px;font-weight:700;}
+.modal-close{background:transparent;border:none;cursor:pointer;
+  color:var(--text-3);padding:4px;border-radius:6px;}
+.modal-close:hover{background:#F1F5F9;color:var(--text);}
+.modal-body{padding:24px;}
+.modal-desc{font-size:13px;color:var(--text-3);line-height:1.6;margin-bottom:16px;}
+.modal-footer{padding:16px 24px;border-top:1px solid var(--border-2);
+  display:flex;justify-content:flex-end;gap:10px;}
+.import-row{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;}
+.import-dropzone{border:2px dashed var(--border);border-radius:var(--radius);
+  padding:28px;text-align:center;cursor:pointer;transition:all var(--ease);margin-bottom:16px;}
+.import-dropzone:hover{border-color:var(--primary);background:#FAFBFC;}
+.import-dropzone.has-file{border-color:var(--green);background:var(--green-soft);}
+.import-file-name{font-size:13px;font-weight:600;color:var(--text);margin-top:6px;}
+.import-hint{font-size:12px;color:var(--text-3);margin-top:4px;}
+.warning-box{padding:12px 14px;border-radius:10px;background:var(--amber-soft);
+  border:1px solid var(--amber-border);color:#92400E;font-size:12.5px;
+  line-height:1.55;margin-bottom:16px;}
+.sidebar-overlay{display:none;}
+@media(max-width:1024px){.stats-grid{grid-template-columns:repeat(2,1fr);}}
+@media(max-width:768px){
+  .sidebar{transform:translateX(-100%);box-shadow:var(--shadow-lg);}
+  .sidebar.open{transform:none;}
+  .main{margin-left:0;}
+  .menu-btn{display:inline-flex;}
+  .topbar{padding:12px 16px;gap:12px;}
+  .sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(15,23,42,0.42);
+    z-index:35;backdrop-filter:blur(2px);}
+  .sidebar-overlay.open{display:block;}
+  .toast{left:16px;right:16px;bottom:16px;max-width:none;}
+  .content{padding:12px;}
+  .queue-grid,.centre-grid{grid-template-columns:minmax(0,1fr);gap:14px;}
+  .card-body{padding:14px;}
+  .btn{min-height:44px;}
+  .form-input,.form-select{min-height:44px;font-size:16px;}
+  .live-datetime{display:none;}
+}
+@media(max-width:520px){
+  .stats-grid{grid-template-columns:1fr;}
+  .topbar-title h1{font-size:14px;}
+  .topbar-sub{font-size:11px;}
+}
+@media(max-width:380px){
+  .welcome-title{font-size:18px;}
+  .page-header h2{font-size:18px;}
+  .welcome-actions{width:100%;}
+  .welcome-actions .btn{width:100%;justify-content:center;}
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ==================== SIDEBAR ==================== -->
+  <aside class="sidebar" id="sidebar" aria-label="Main navigation">
+    <div class="sidebar-brand">
+      <div class="brand-mark">P</div>
+      <div class="brand-text">
+        <span class="brand-name">PRATIKSHA</span>
+        <span class="brand-sub">Diagnostic Queue</span>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Queue</div>
+
+      <button class="nav-item active" data-page="overview">
+        <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>
+        <span>Overview</span>
+      </button>
+
+      <button class="nav-item" data-page="queue">
+        <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+        <span>Patient Queue</span>
+      </button>
+
+      <button class="nav-item" data-page="centres">
+        <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2v7.527a2 2 0 0 1-.211.896L4.72 20.55a1 1 0 0 0 .9 1.45h12.76a1 1 0 0 0 .9-1.45l-5.069-10.127A2 2 0 0 1 14 9.527V2"/><path d="M8.5 2h7"/><path d="M7 16h10"/></svg>
+        <span>Testing Centres</span>
+      </button>
+
+      <button class="nav-item" data-page="schedule">
+        <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg>
+        <span>Queue Schedule</span>
+      </button>
+    </nav>
+
+    <div class="next-id-box">
+      <div class="next-id-label">Next Patient</div>
+      <div class="next-id-value" id="nextPatientIdSidebar">P001</div>
+    </div>
+
+    <div class="sidebar-status">
+      <div class="status-head">
+        <span class="status-label">Backend</span>
+        <span class="status-pill pending" id="sidebarStatusPill">
+          <span class="dot-live"></span>Connecting
+        </span>
+      </div>
+      <div class="status-detail" id="sidebarStatusDetail">Checking backend...</div>
+    </div>
+  </aside>
+
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+  <!-- ==================== MAIN ==================== -->
+  <div class="main">
+    <header class="topbar">
+      <button class="icon-btn menu-btn" id="menuBtn" aria-label="Open menu" style="width:36px;height:36px;border-radius:10px;border:1px solid var(--border);background:#fff;display:inline-flex;align-items:center;justify-content:center;color:var(--text-2);cursor:pointer;">
+        <svg class="icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+
+      <div class="topbar-title">
+        <h1 id="pageTitle">Overview</h1>
+        <span class="topbar-sub" id="pageSub">Queue status at a glance</span>
+      </div>
+
+      <div class="topbar-actions">
+        <div class="live-datetime">
+          <span class="live-clock" id="liveClock">--:--:-- --</span>
+          <span class="live-date" id="liveDate">---</span>
+          <span class="live-tag">IST</span>
+        </div>
+        <div class="avatar" title="Babu Jha">BK</div>
+      </div>
+    </header>
+
+    <main class="content">
+
+      <!-- ==================== OVERVIEW ==================== -->
+      <section class="page active" id="page-overview">
+        <div class="welcome">
+          <div class="welcome-text">
+            <div class="welcome-eyebrow" id="greeting">Good Afternoon</div>
+            <h2 class="welcome-title">Smart Diagnostic Queue</h2>
+            <p class="welcome-sub">Manage patient routing and test scheduling from one place.</p>
+          </div>
+          <div class="welcome-actions">
+            <button class="btn btn-primary" data-goto="queue">
+              <svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Add Patient
+            </button>
+            <button class="btn btn-secondary" data-goto="schedule">
+              <svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg>
+              View Schedule
+            </button>
+          </div>
+        </div>
+
+        <div class="stats-grid" id="statsGrid"><!-- JS --></div>
+
+        <div class="section">
+          <div class="section-head">
+            <div>
+              <div class="section-title">Testing Centres — Live</div>
+              <div class="section-sub">Real-time machine status</div>
+            </div>
+            <button class="btn btn-ghost" data-goto="centres">View details →</button>
+          </div>
+          <div class="card">
+            <div id="overviewCentres" class="centre-grid" style="padding:20px;"><!-- JS --></div>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-head">
+            <div>
+              <div class="section-title">Upcoming Schedule</div>
+              <div class="section-sub">Calculated by the C++ backend</div>
+            </div>
+            <button class="btn btn-ghost" data-goto="schedule">Full schedule →</button>
+          </div>
+          <div class="card">
+            <div id="overviewSchedule"><!-- JS --></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== PATIENT QUEUE ==================== -->
+      <section class="page" id="page-queue">
+        <div class="page-header">
+          <div>
+            <h2>Patient Queue</h2>
+            <p>Add patients and their prescribed diagnostic tests. Patient ID is auto-generated.</p>
+          </div>
+          <div class="page-header-actions">
+            <button class="btn btn-secondary" id="queueRefreshBtn">
+              <svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/><path d="M3 21v-5h5"/></svg>
+              Refresh
+            </button>
+            <button class="btn btn-secondary" id="queueResetBtn" style="color:var(--red);">
+              <svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+              Clear All
+            </button>
+          </div>
+        </div>
+
+        <div class="queue-grid">
+          <div>
+            <div class="card">
+              <div class="card-body">
+                <div class="section-title" style="margin-bottom:14px;">Patient Details</div>
+
+                <div class="form-field" style="margin-bottom:14px;">
+                  <label class="form-label">Patient ID (auto-generated)</label>
+                  <div class="next-id-display">
+                    <span class="label">Next:</span>
+                    <span class="value" id="nextPatientIdForm">P001</span>
+                  </div>
+                </div>
+
+                <div class="form-field" style="margin-bottom:14px;">
+                  <label class="form-label" for="qPatientName">Patient Name</label>
+                  <input class="form-input" id="qPatientName" type="text" placeholder="Full name" autocomplete="off" />
+                </div>
+
+                <div class="form-field" style="margin-bottom:14px;">
+                  <label class="form-label">Prescribed Tests</label>
+                  <div class="test-picker" id="qTestPicker"><!-- JS --></div>
+                </div>
+
+                <button class="btn btn-primary" id="qAddPatientBtn" style="width:100%;justify-content:center;">
+                  <svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                  Register Patient
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <div class="card">
+              <div class="card-body">
+                <div class="section-head" style="margin-bottom:12px;">
+                  <div class="section-title">Patients in Queue</div>
+                  <span class="badge badge-grey" id="qPatientCount">0</span>
+                </div>
+                <div id="qPatientList" class="patient-list"><!-- JS --></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== TESTING CENTRES ==================== -->
+      <section class="page" id="page-centres">
+        <div class="page-header">
+          <div>
+            <h2>Testing Centres</h2>
+            <p>Live status, workload and utilization for each diagnostic centre.</p>
+          </div>
+          <div class="page-header-actions">
+            <button class="btn btn-secondary" id="centresImportBtn">
+              <svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              Import Hospital Data
+            </button>
+            <button class="btn btn-secondary" id="centresRefreshBtn">
+              <svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/><path d="M3 21v-5h5"/></svg>
+              Refresh
+            </button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-body">
+            <div id="centresContent" class="centre-grid"><!-- JS --></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== QUEUE SCHEDULE ==================== -->
+      <section class="page" id="page-schedule">
+        <div class="page-header">
+          <div>
+            <h2>Queue Schedule</h2>
+            <p>Patient-wise test sequence and predicted timeline calculated by the backend.</p>
+          </div>
+          <div class="page-header-actions">
+            <button class="btn btn-secondary" id="scheduleRefreshBtn">
+              <svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/><path d="M3 21v-5h5"/></svg>
+              Refresh
+            </button>
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom:20px;">
+          <div class="card-body">
+            <div class="section-title" style="margin-bottom:14px;">Patient-wise Sequence</div>
+            <div id="scheduleSequence" class="patient-list"><!-- JS --></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-body">
+            <div class="section-title" style="margin-bottom:14px;">Predicted Timeline</div>
+            <div id="scheduleTimeline" class="timeline"><!-- JS --></div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+</div>
+
+<!-- ==================== IMPORT MODAL ==================== -->
+<div class="modal-overlay" id="importModal" style="display:none;">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Import Hospital Configuration</div>
+      <button class="modal-close" onclick="closeImportModal()">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <p class="modal-desc">Upload a JSON or Excel file to define your hospital's tests and testing centres. All patients must be cleared first.</p>
+
+      <div class="warning-box" id="importWarning" style="display:none;">
+        ⚠️ You have active patients or busy centres. Please clear the queue first.
+      </div>
+
+      <div class="import-row">
+        <button class="btn btn-secondary btn-sm" onclick="downloadJsonTemplate()">
+          <svg class="icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          JSON Template
+        </button>
+        <button class="btn btn-secondary btn-sm" onclick="downloadExcelTemplate()">
+          <svg class="icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Excel Template
+        </button>
+      </div>
+
+      <div class="import-dropzone" id="importDropzone" onclick="document.getElementById('importFileInput').click()">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-3);"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        <div class="import-file-name" id="importFileName">Click to choose a file</div>
+        <div class="import-hint">Supported: .json, .xlsx, .xls, .csv</div>
+      </div>
+
+      <input type="file" id="importFileInput" accept=".json,.xlsx,.xls,.csv" style="display:none;">
+
+      <div id="importPreview" style="display:none;">
+        <div class="section-title" style="margin-bottom:8px;font-size:13px;">Preview</div>
+        <div style="font-size:12.5px;color:var(--text-3);line-height:1.6;" id="importPreviewBody"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeImportModal()">Cancel</button>
+      <button class="btn btn-primary" id="importApplyBtn" disabled onclick="applyImport()">Apply Configuration</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  // ---------- State ----------
+  var state = {
+    page: 'overview',
+    backendOnline: null,
+    tests: [],
+    testsLoading: false,
+    testsError: null,
+    centres: [],
+    centresLoading: false,
+    centresError: null,
+    patients: [],
+    patientsLoading: false,
+    patientsError: null,
+    nextPatientId: 'P001',
+    queue: null,
+    queueLoading: false,
+    queueError: null
+  };
+
+  var centreEndMs = {};
+  var pendingImportConfig = null;
+
+  // ---------- API helpers ----------
+  function apiGet(path) {
+    return fetch(path, { cache: 'no-store' }).then(function (res) {
+      return res.json().then(function (data) {
+        if (!res.ok) throw new Error((data && data.error) || ('HTTP ' + res.status));
+        return data;
+      });
+    });
+  }
+  function apiPost(path, body) {
+    return fetch(path, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body || {})
+    }).then(function (res) {
+      return res.json().then(function (data) {
+        if (!res.ok) throw new Error((data && data.error) || ('HTTP ' + res.status));
+        return data;
+      });
+    });
+  }
+  function apiDelete(path) {
+    return fetch(path, { method: 'DELETE' }).then(function (res) {
+      return res.json().then(function (data) {
+        if (!res.ok) throw new Error((data && data.error) || ('HTTP ' + res.status));
+        return data;
+      });
+    });
+  }
+
+  // ---------- Helpers ----------
+  function escapeHtml(v) {
+    return String(v == null ? '' : v)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+  function getTestName(id) {
+    for (var i = 0; i < state.tests.length; i++)
+      if (state.tests[i].id === id) return state.tests[i].name;
+    return id;
+  }
+  function fmtSeconds(sec) {
+    if (sec == null || isNaN(sec)) return '--';
+    if (sec <= 0) return '0s';
+    if (sec < 60) return sec + 's';
+    var m = Math.floor(sec / 60), s = sec % 60;
+    return m + 'm ' + (s < 10 ? '0' + s : s) + 's';
+  }
+
+  var toastTimer = null;
+  function showToast(msg, type) {
+    var old = document.querySelector('.toast');
+    if (old) old.remove();
+    var el = document.createElement('div');
+    el.className = 'toast' + (type ? ' ' + type : '');
+    el.textContent = msg;
+    document.body.appendChild(el);
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { el.remove(); }, 4200);
+  }
+
+  // ---------- Live IST clock ----------
+  function updateLiveClock() {
+    var now = new Date();
+    var clock = document.getElementById('liveClock');
+    var date = document.getElementById('liveDate');
+    try {
+      if (clock) {
+        clock.textContent = new Intl.DateTimeFormat('en-IN', {
+          timeZone: 'Asia/Kolkata',
+          hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true
+        }).format(now);
+      }
+      if (date) {
+        date.textContent = new Intl.DateTimeFormat('en-IN', {
+          timeZone: 'Asia/Kolkata',
+          day: '2-digit', month: 'short', year: 'numeric'
+        }).format(now);
+      }
+    } catch (e) {}
+  }
+  setInterval(updateLiveClock, 1000);
+  updateLiveClock();
+
+  // ---------- Live countdown ticker ----------
+  function tickCountdowns() {
+    var now = Date.now();
+    document.querySelectorAll('[data-countdown]').forEach(function (el) {
+      var id = el.getAttribute('data-countdown');
+      var end = centreEndMs[id];
+      if (!end) return;
+      var rem = Math.max(0, Math.ceil((end - now) / 1000));
+      if (rem === 0) {
+        el.textContent = 'Awaiting confirmation';
+        el.classList.add('awaiting');
+      } else {
+        el.textContent = fmtSeconds(rem);
+        el.classList.remove('awaiting');
+      }
+    });
+  }
+  setInterval(tickCountdowns, 1000);
+
+  // ---------- Loaders ----------
+  function loadHealth() {
+    return apiGet('/api/health').then(function (data) {
+      state.backendOnline = true;
+      renderHealth();
+    }).catch(function () {
+      state.backendOnline = false;
+      renderHealth();
+    });
+  }
+
+  function loadTests() {
+    state.testsLoading = true;
+    state.testsError = null;
+    renderTestPicker();
+    return apiGet('/api/tests').then(function (data) {
+      state.tests = (data && Array.isArray(data.tests)) ? data.tests : [];
+      state.testsLoading = false;
+      renderTestPicker();
+    }).catch(function (err) {
+      state.tests = [];
+      state.testsLoading = false;
+      state.testsError = err.message || 'Failed to load tests';
+      renderTestPicker();
+    });
+  }
+
+  function loadCentres() {
+    state.centresLoading = true;
+    state.centresError = null;
+    renderCurrentPage();
+    return apiGet('/api/centres').then(function (data) {
+      state.centres = (data && Array.isArray(data.centres)) ? data.centres : [];
+      var now = Date.now();
+      state.centres.forEach(function (c) {
+        if (c.status === 'BUSY' && c.remainingSeconds > 0) {
+          centreEndMs[c.id] = now + c.remainingSeconds * 1000;
+        } else {
+          centreEndMs[c.id] = null;
+        }
+      });
+      state.centresLoading = false;
+      state.centresError = null;
+      renderCurrentPage();
+    }).catch(function (err) {
+      state.centres = [];
+      state.centresLoading = false;
+      state.centresError = err.message || 'Failed to load centres';
+      renderCurrentPage();
+    });
+  }
+
+  function loadPatients() {
+    state.patientsLoading = true;
+    state.patientsError = null;
+    renderCurrentPage();
+    return apiGet('/api/patients').then(function (data) {
+      state.patients = (data && Array.isArray(data.patients)) ? data.patients : [];
+      if (data && data.nextPatientId) state.nextPatientId = data.nextPatientId;
+      state.patientsLoading = false;
+      state.patientsError = null;
+      renderNextPatientId();
+      renderCurrentPage();
+    }).catch(function (err) {
+      state.patients = [];
+      state.patientsLoading = false;
+      state.patientsError = err.message || 'Failed to load patients';
+      renderCurrentPage();
+    });
+  }
+
+  function loadQueue() {
+    if (state.patients.length === 0) {
+      state.queue = null;
+      state.queueLoading = false;
+      state.queueError = null;
+      renderCurrentPage();
+      return Promise.resolve();
+    }
+    state.queueLoading = true;
+    state.queueError = null;
+    renderCurrentPage();
+    return apiGet('/api/queue').then(function (data) {
+      state.queue = data;
+      state.queueLoading = false;
+      state.queueError = null;
+      renderCurrentPage();
+    }).catch(function (err) {
+      state.queue = null;
+      state.queueLoading = false;
+      state.queueError = err.message || 'Failed to compute queue';
+      renderCurrentPage();
+    });
+  }
+
+  function refreshAll() {
+    return loadPatients().then(loadCentres).then(loadQueue);
+  }
+
+  // ---------- Actions ----------
+  // ═════════════════════════════════════════════════════════════
+  // FIXED: addPatient() — now sends `id: state.nextPatientId`
+  // so both v1.5 (requires id) and v1.6 (ignores id) backends
+  // accept the registration.
+  // ═════════════════════════════════════════════════════════════
+  function addPatient() {
+    var nameInput = document.getElementById('qPatientName');
+    var btn = document.getElementById('qAddPatientBtn');
+    var name = nameInput ? nameInput.value.trim() : '';
+
+    var checks = document.querySelectorAll('#qTestPicker input[type="checkbox"]:checked');
+    var tests = Array.prototype.map.call(checks, function (c) { return c.value; });
+    if (tests.length === 0) { showToast('Select at least one test.', 'warn'); return; }
+
+    if (btn) btn.disabled = true;
+
+    apiPost('/api/patients', {
+        id: state.nextPatientId,
+        name: name,
+        tests: tests,
+        emergency: false
+      })
+      .then(function (data) {
+        var newId = data.patient && data.patient.id ? data.patient.id : '?';
+        if (data.nextPatientId) state.nextPatientId = data.nextPatientId;
+        if (nameInput) nameInput.value = '';
+        Array.prototype.forEach.call(checks, function (c) {
+          c.checked = false;
+          var lbl = c.closest('.test-pick');
+          if (lbl) lbl.classList.remove('checked');
+        });
+        showToast('Patient ' + newId + ' registered. Next: ' + state.nextPatientId, 'success');
+        renderNextPatientId();
+        return refreshAll();
+      })
+      .catch(function (err) {
+        showToast(err.message, 'error');
+      })
+      .then(function () {
+        if (btn) btn.disabled = false;
+      });
+  }
+
+  function removePatient(id) {
+    if (!confirm('Remove patient ' + id + '?')) return;
+    apiDelete('/api/patients/' + encodeURIComponent(id))
+      .then(function (data) {
+        if (data && data.nextPatientId) state.nextPatientId = data.nextPatientId;
+        showToast('Patient ' + id + ' removed.', 'success');
+        return refreshAll();
+      })
+      .catch(function (err) { showToast(err.message, 'error'); });
+  }
+
+  function resetQueue() {
+    if (!confirm('Remove ALL patients and reset counters?')) return;
+    apiPost('/api/queue/reset', {})
+      .then(function (data) {
+        if (data && data.nextPatientId) state.nextPatientId = data.nextPatientId;
+        showToast('Queue cleared. Next patient: ' + state.nextPatientId, 'success');
+        return refreshAll();
+      })
+      .catch(function (err) { showToast(err.message, 'error'); });
+  }
+
+  function assignNext(centreId) {
+    apiGet('/api/centres/' + encodeURIComponent(centreId) + '/next')
+      .then(function (data) {
+        if (data && data.patient) {
+          showToast('Assigned ' + data.patient.id + ' to ' + centreId + ' · ' + data.patient.testName, 'success');
+        } else {
+          showToast('No eligible patient for ' + centreId + '.', 'warn');
+        }
+        return loadCentres().then(loadPatients).then(loadQueue);
+      })
+      .catch(function (err) { showToast(err.message, 'error'); });
+  }
+
+  function completeTest(centreId) {
+    var centre = null;
+    for (var i = 0; i < state.centres.length; i++)
+      if (state.centres[i].id === centreId) { centre = state.centres[i]; break; }
+    if (!centre || !centre.currentPatient) { showToast('Centre is not serving anyone.', 'warn'); return; }
+
+    var payload = {
+      patientId: centre.currentPatient,
+      testId: centre.currentTestId,
+      centreId: centreId
+    };
+    if (!confirm('Mark ' + payload.testId + ' for ' + payload.patientId + ' as COMPLETED at ' + centreId + '?')) return;
+
+    apiPost('/api/tests/complete', payload)
+      .then(function () {
+        showToast('Test completed for ' + payload.patientId + '.', 'success');
+        return loadCentres().then(loadPatients).then(loadQueue);
+      })
+      .catch(function (err) { showToast(err.message, 'error'); });
+  }
+
+  // ---------- Import config modal ----------
+  function openImportModal() {
+    var warn = document.getElementById('importWarning');
+    var busy = state.patients.length > 0 || state.centres.some(function (c) { return !c.available; });
+    if (warn) warn.style.display = busy ? 'block' : 'none';
+    document.getElementById('importModal').style.display = 'flex';
+    resetImportModal();
+  }
+  function closeImportModal() {
+    document.getElementById('importModal').style.display = 'none';
+  }
+  function resetImportModal() {
+    pendingImportConfig = null;
+    var f = document.getElementById('importFileInput');
+    if (f) f.value = '';
+    var n = document.getElementById('importFileName');
+    if (n) n.textContent = 'Click to choose a file';
+    var dz = document.getElementById('importDropzone');
+    if (dz) dz.classList.remove('has-file');
+    var p = document.getElementById('importPreview');
+    if (p) p.style.display = 'none';
+    var b = document.getElementById('importApplyBtn');
+    if (b) b.disabled = true;
+  }
+
+  function handleFileSelected(file) {
+    if (!file) return;
+    var nameEl = document.getElementById('importFileName');
+    if (nameEl) nameEl.textContent = file.name;
+    document.getElementById('importDropzone').classList.add('has-file');
+
+    var ext = file.name.split('.').pop().toLowerCase();
+    var reader = new FileReader();
+
+    reader.onload = function (e) {
+      try {
+        var config = null;
+        if (ext === 'json') {
+          config = JSON.parse(e.target.result);
+        } else if (ext === 'xlsx' || ext === 'xls' || ext === 'csv') {
+          var wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
+          var testsSheet = wb.Sheets['Tests'];
+          var centresSheet = wb.Sheets['Centres'];
+          if (!testsSheet || !centresSheet) {
+            showToast('Excel must contain "Tests" and "Centres" sheets.', 'error');
+            return;
+          }
+          var testsJson = XLSX.utils.sheet_to_json(testsSheet);
+          var centresJson = XLSX.utils.sheet_to_json(centresSheet);
+          config = {
+            tests: testsJson.map(function (r) {
+              return {
+                id: r.id || r.ID || '',
+                name: r.name || r.Name || '',
+                durationMinutes: Number(r.durationMinutes || r.DurationMinutes || r.Duration || 0)
+              };
+            }),
+            centres: centresJson.map(function (r) {
+              return {
+                id: r.id || r.ID || '',
+                name: r.name || r.Name || '',
+                testId: r.testId || r.TestID || r.TestId || '',
+                durationMinutes: Number(r.durationMinutes || r.DurationMinutes || r.Duration || 0),
+                machineCount: Number(r.machineCount || r.MachineCount || 1),
+                enabled: (String(r.enabled || r.Enabled || 'TRUE').toUpperCase() !== 'FALSE')
+              };
+            })
+          };
+        } else {
+          showToast('Unsupported file type.', 'error');
+          return;
+        }
+
+        if (!config.tests || !config.centres) {
+          showToast('File must contain "tests" and "centres" arrays.', 'error');
+          return;
+        }
+        pendingImportConfig = config;
+
+        var preview = document.getElementById('importPreview');
+        var body = document.getElementById('importPreviewBody');
+        if (preview && body) {
+          body.innerHTML =
+            '<div>• <strong>' + config.tests.length + '</strong> tests</div>' +
+            '<div>• <strong>' + config.centres.length + '</strong> centres</div>' +
+            '<div style="margin-top:6px;">Tests: ' +
+            escapeHtml(config.tests.map(function (t) { return t.id + ' (' + t.name + ')'; }).join(', ')) + '</div>';
+          preview.style.display = 'block';
+        }
+
+        var btn = document.getElementById('importApplyBtn');
+        if (btn) btn.disabled = false;
+      } catch (err) {
+        showToast('Could not parse file: ' + err.message, 'error');
+        pendingImportConfig = null;
+      }
+    };
+
+    if (ext === 'json') reader.readAsText(file);
+    else reader.readAsArrayBuffer(file);
+  }
+
+  function applyImport() {
+    if (!pendingImportConfig) return;
+    var btn = document.getElementById('importApplyBtn');
+    if (btn) { btn.disabled = true; btn.textContent = 'Applying…'; }
+
+    apiPost('/api/configuration', pendingImportConfig)
+      .then(function (data) {
+        showToast('Configuration imported: ' + data.tests.length + ' tests, ' + data.centres.length + ' centres.', 'success');
+        closeImportModal();
+        return Promise.all([loadTests(), loadCentres(), loadPatients()]).then(loadQueue);
+      })
+      .catch(function (err) {
+        showToast(err.message, 'error');
+        if (btn) { btn.disabled = false; btn.textContent = 'Apply Configuration'; }
+      });
+  }
+
+  function downloadJsonTemplate() {
+    var tpl = {
+      hospitalName: 'PRATIKSHA',
+      tests: [
+        { id: 'A', name: 'X-Ray', durationMinutes: 10 },
+        { id: 'B', name: 'Blood Test', durationMinutes: 5 },
+        { id: 'C', name: 'Ultrasound', durationMinutes: 20 },
+        { id: 'D', name: 'CT Scan', durationMinutes: 30 }
+      ],
+      centres: [
+        { id: 'A1', name: 'X-Ray Room', testId: 'A', machineCount: 1, durationMinutes: 10, enabled: true },
+        { id: 'B1', name: 'Blood Test Lab', testId: 'B', machineCount: 1, durationMinutes: 5, enabled: true },
+        { id: 'C1', name: 'Ultrasound Room', testId: 'C', machineCount: 1, durationMinutes: 20, enabled: true },
+        { id: 'D1', name: 'CT Scan Room', testId: 'D', machineCount: 1, durationMinutes: 30, enabled: true }
+      ]
+    };
+    var blob = new Blob([JSON.stringify(tpl, null, 2)], { type: 'application/json' });
+    triggerDownload(blob, 'hospital-config-template.json');
+  }
+  function downloadExcelTemplate() {
+    if (typeof XLSX === 'undefined') { showToast('Excel library not loaded.', 'error'); return; }
+    var wb = XLSX.utils.book_new();
+    var testsRows = [
+      ['id', 'name', 'durationMinutes'],
+      ['A', 'X-Ray', 10],
+      ['B', 'Blood Test', 5],
+      ['C', 'Ultrasound', 20],
+      ['D', 'CT Scan', 30]
+    ];
+    var centresRows = [
+      ['id', 'name', 'testId', 'machineCount', 'durationMinutes', 'enabled'],
+      ['A1', 'X-Ray Room', 'A', 1, 10, true],
+      ['B1', 'Blood Test Lab', 'B', 1, 5, true],
+      ['C1', 'Ultrasound Room', 'C', 1, 20, true],
+      ['D1', 'CT Scan Room', 'D', 1, 30, true]
+    ];
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(testsRows), 'Tests');
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(centresRows), 'Centres');
+    XLSX.writeFile(wb, 'hospital-config-template.xlsx');
+  }
+  function triggerDownload(blob, filename) {
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+  }
+
+  // ---------- Rendering ----------
+  function renderHealth() {
+    var pill = document.getElementById('sidebarStatusPill');
+    var detail = document.getElementById('sidebarStatusDetail');
+    if (!pill) return;
+    if (state.backendOnline === null) {
+      pill.className = 'status-pill pending';
+      pill.innerHTML = '<span class="dot-live"></span>Connecting';
+      detail.textContent = 'Checking backend...';
+    } else if (state.backendOnline) {
+      pill.className = 'status-pill';
+      pill.innerHTML = '<span class="dot-live"></span>Connected';
+      detail.textContent = 'Backend is running';
+    } else {
+      pill.className = 'status-pill disconnected';
+      pill.innerHTML = '<span class="dot-live"></span>Disconnected';
+      detail.textContent = 'Backend is offline';
+    }
+  }
+
+  function renderNextPatientId() {
+    var els = [
+      document.getElementById('nextPatientIdSidebar'),
+      document.getElementById('nextPatientIdForm')
+    ];
+    els.forEach(function (el) { if (el) el.textContent = state.nextPatientId || 'P001'; });
+  }
+
+  function renderStats() {
+    var el = document.getElementById('statsGrid');
+    if (!el) return;
+
+    var totalPatients = state.patients.length;
+    var waitingPatients = state.patients.filter(function (p) {
+      return p.status === 'WAITING' && (!p.currentCentre || p.currentCentre === '');
+    }).length;
+    var busyCentres = state.centres.filter(function (c) { return c.status === 'BUSY' || c.status === 'AWAITING_CONFIRMATION'; }).length;
+    var availableCentres = state.centres.filter(function (c) { return c.status === 'AVAILABLE'; }).length;
+    var pendingTests = state.patients.reduce(function (s, p) {
+      return s + (Array.isArray(p.tests) ? p.tests.length : 0);
+    }, 0);
+
+    function card(icon, tint, value, label, hint, hintCls) {
+      return '<div class="stat-card">' +
+        '<div class="stat-top"><div class="stat-icon ' + tint + '">' + icon + '</div></div>' +
+        '<div class="stat-value">' + value + '</div>' +
+        '<div class="stat-label">' + escapeHtml(label) + '</div>' +
+        (hint ? '<div class="stat-hint ' + (hintCls || '') + '">' + escapeHtml(hint) + '</div>' : '') +
+      '</div>';
+    }
+
+    var iconUsers = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>';
+    var iconFlask = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 2v7.5a2 2 0 0 1-.2.9l-5 10.1A1 1 0 0 0 5.7 22h12.6a1 1 0 0 0 .9-1.5l-5-10.1a2 2 0 0 1-.2-.9V2"/></svg>';
+    var iconGrid = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>';
+    var iconClock = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>';
+
+    el.innerHTML = [
+      card(iconUsers, 'blue', totalPatients, 'Total Patients',
+        state.patientsLoading ? 'Loading…' : (totalPatients === 0 ? 'No patients yet' : waitingPatients + ' waiting')),
+      card(iconFlask, 'teal', pendingTests, 'Pending Tests',
+        state.patientsLoading ? 'Loading…' : (pendingTests === 0 ? 'Nothing pending' : 'Across all patients')),
+      card(iconGrid, 'violet', busyCentres + '/' + state.centres.length, 'Machines Busy',
+        availableCentres + ' available'),
+      card(iconClock, 'amber', state.queue ? (state.queue.totalTime || 0) + ' min' : '—',
+        'Estimated Completion',
+        state.queue ? 'Backend simulation' : (state.patients.length === 0 ? 'Add patients first' : 'Computing…'))
+    ].join('');
+  }
+
+  function renderTestPicker() {
+    var el = document.getElementById('qTestPicker');
+    if (!el) return;
+
+    var selectedTestIds = Array.from(
+      el.querySelectorAll('input[type="checkbox"]:checked')
+    ).map(function (cb) {
+      return cb.value;
+    });
+
+    if (state.testsLoading) {
+      el.innerHTML = '<div style="padding:16px;text-align:center;color:var(--text-3);font-size:12.5px;"><div class="spinner" style="margin-bottom:8px;"></div>Loading tests…</div>';
+      return;
+    }
+    if (state.testsError) {
+      el.innerHTML = '<div style="padding:12px;font-size:12.5px;color:var(--red);">Failed to load tests.<br><button class="btn btn-ghost" id="testPickerRetry" style="margin-top:6px;padding:4px 8px;font-size:12px;">Retry</button></div>';
+      var r = document.getElementById('testPickerRetry');
+      if (r) r.addEventListener('click', loadTests);
+      return;
+    }
+    if (state.tests.length === 0) {
+      el.innerHTML = '<div style="padding:12px;font-size:12.5px;color:var(--text-3);">No tests available.</div>';
+      return;
+    }
+    el.innerHTML = state.tests.map(function (t) {
+      return '<label class="test-pick" data-test-id="' + escapeHtml(t.id) + '">' +
+        '<input type="checkbox" value="' + escapeHtml(t.id) + '" />' +
+        '<span class="test-id">' + escapeHtml(t.id) + '</span>' +
+        '<span style="flex:1;font-weight:500;">' + escapeHtml(t.name) + '</span>' +
+        '<span style="font-size:11.5px;color:var(--text-3);">' + escapeHtml(t.durationMinutes) + ' min</span>' +
+      '</label>';
+    }).join('');
+
+    el.querySelectorAll('input[type="checkbox"]').forEach(function (cb) {
+      cb.checked = selectedTestIds.includes(cb.value);
+      var lbl = cb.closest('.test-pick');
+      if (lbl) {
+        lbl.classList.toggle('checked', cb.checked);
+      }
+      cb.addEventListener('change', function () {
+        var label = cb.closest('.test-pick');
+        if (label) {
+          label.classList.toggle('checked', cb.checked);
+        }
+      });
+    });
+  }
+
+  function renderPatientList() {
+    var listEl = document.getElementById('qPatientList');
+    var countEl = document.getElementById('qPatientCount');
+    if (!listEl) return;
+    if (countEl) countEl.textContent = String(state.patients.length);
+
+    if (state.patientsLoading && state.patients.length === 0) {
+      listEl.innerHTML = '<div class="loading-state"><div class="spinner"></div>Loading patients…</div>';
+      return;
+    }
+    if (state.patientsError) {
+      listEl.innerHTML = '<div class="error-state" style="padding:24px 12px;"><div class="error-title">Unable to load patients</div><div class="error-desc">' + escapeHtml(state.patientsError) + '</div><button class="btn btn-secondary" id="patientListRetry">Retry</button></div>';
+      var r = document.getElementById('patientListRetry');
+      if (r) r.addEventListener('click', refreshAll);
+      return;
+    }
+    if (state.patients.length === 0) {
+      listEl.innerHTML = '<div class="empty-state" style="padding:24px 12px;"><div class="empty-title">No patients in queue</div><div class="empty-desc">Add a patient using the form.</div></div>';
+      return;
+    }
+    listEl.innerHTML = state.patients.map(function (p) {
+      var testsHtml = (p.tests || []).map(function (t) {
+        return '<span class="badge badge-grey">' + escapeHtml(t) + ' · ' + escapeHtml(getTestName(t)) + '</span>';
+      }).join('');
+      var statusBadge = '';
+      if (p.currentCentre) {
+        statusBadge = '<span class="badge badge-blue">Testing · ' + escapeHtml(p.currentCentre) + '</span>';
+      } else if (p.status === 'COMPLETED') {
+        statusBadge = '<span class="badge badge-green">Completed</span>';
+      } else {
+        statusBadge = '<span class="badge badge-amber">Waiting</span>';
+      }
+      return '<div class="patient-card">' +
+        '<div class="patient-head">' +
+          '<div>' +
+            '<span class="patient-id">' + escapeHtml(p.id) + '</span>' +
+            (p.name ? '<span class="patient-name">' + escapeHtml(p.name) + '</span>' : '') +
+          '</div>' +
+          '<div>' + statusBadge + ' <button class="btn btn-ghost" data-remove-patient="' + escapeHtml(p.id) + '" style="color:var(--red);padding:2px 8px;font-size:12px;">Remove</button></div>' +
+        '</div>' +
+        '<div style="display:flex;gap:6px;flex-wrap:wrap;">' + testsHtml + '</div>' +
+      '</div>';
+    }).join('');
+    listEl.querySelectorAll('[data-remove-patient]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        removePatient(btn.getAttribute('data-remove-patient'));
+      });
+    });
+  }
+
+  function renderCentreCards(container, compact) {
+    if (!container) return;
+    if (state.centresLoading && state.centres.length === 0) {
+      container.innerHTML = '<div class="loading-state" style="grid-column:1/-1;"><div class="spinner"></div>Loading centres…</div>';
+      return;
+    }
+    if (state.centresError) {
+      container.innerHTML = '<div class="error-state" style="grid-column:1/-1;padding:24px;"><div class="error-title">Unable to load centres</div><div class="error-desc">' + escapeHtml(state.centresError) + '</div><button class="btn btn-secondary" id="centresRetry">Retry</button></div>';
+      var r = document.getElementById('centresRetry');
+      if (r) r.addEventListener('click', loadCentres);
+      return;
+    }
+    if (state.centres.length === 0) {
+      container.innerHTML = '<div class="empty-state" style="grid-column:1/-1;"><div class="empty-title">No centres available</div></div>';
+      return;
+    }
+
+    var queueById = {};
+    if (state.queue && Array.isArray(state.queue.centres)) {
+      state.queue.centres.forEach(function (c) { queueById[c.id] = c; });
+    }
+
+    container.innerHTML = state.centres.map(function (c) {
+      var status = c.status || 'AVAILABLE';
+      var live = queueById[c.id];
+      var util = live ? live.utilization : null;
+      var duration = c.durationMinutes != null ? c.durationMinutes : c.duration;
+      var cardCls = 'centre-card';
+      if (status === 'BUSY') cardCls += ' busy';
+      else if (status === 'AWAITING_CONFIRMATION') cardCls += ' awaiting';
+
+      var badge = '<span class="badge badge-green">Available</span>';
+      if (status === 'BUSY') badge = '<span class="badge badge-blue">In Progress</span>';
+      else if (status === 'AWAITING_CONFIRMATION') badge = '<span class="badge badge-amber">Awaiting Confirmation</span>';
+
+      var body = '';
+      if (status === 'AVAILABLE') {
+        body = 'Completed: <strong>' + (c.completedCount || 0) + '</strong>' +
+               ' · Utilization: <strong>' + (util != null ? util + '%' : '—') + '</strong>' +
+               '<div class="util-bar"><div class="util-fill" style="width:' + (util || 0) + '%;"></div></div>';
+      } else {
+        var patient = c.currentPatient || '—';
+        var testName = c.currentTestId ? getTestName(c.currentTestId) : '—';
+        body =
+          'Patient: <strong>' + escapeHtml(patient) + '</strong>' +
+          ' · Test: <strong>' + escapeHtml(testName) + '</strong>' +
+          '<div class="countdown-block">' +
+            '<span class="countdown-label">Remaining</span>' +
+            '<span class="countdown-value" data-countdown="' + escapeHtml(c.id) + '">' +
+              (status === 'AWAITING_CONFIRMATION' ? 'Awaiting confirmation' : fmtSeconds(c.remainingSeconds || 0)) +
+            '</span>' +
+          '</div>' +
+          'Elapsed: <strong>' + fmtSeconds(c.elapsedSeconds || 0) + '</strong>';
+      }
+
+      var actions = '';
+      if (status === 'AVAILABLE') {
+        actions = '<div class="centre-actions">' +
+          '<button class="btn btn-primary btn-sm" data-assign="' + escapeHtml(c.id) + '">Assign Next Patient</button>' +
+        '</div>';
+      } else {
+        actions = '<div class="centre-actions">' +
+          '<button class="btn btn-success btn-sm" data-complete="' + escapeHtml(c.id) + '">Complete Test</button>' +
+        '</div>';
+      }
+
+      if (compact) {
+        return '<div class="' + cardCls + '">' +
+          '<div class="centre-head">' +
+            '<div>' +
+              '<div class="centre-name">' + escapeHtml(c.name) + '</div>' +
+              '<div class="centre-sub">Centre ' + escapeHtml(c.id) + ' · ' + escapeHtml(duration) + ' min</div>' +
+            '</div>' +
+            badge +
+          '</div>' +
+          '<div class="centre-body">' +
+            (status === 'AVAILABLE'
+              ? 'Available · ' + (c.completedCount || 0) + ' completed'
+              : 'Serving <strong>' + escapeHtml(c.currentPatient || '—') + '</strong>') +
+          '</div>' +
+        '</div>';
+      }
+
+      return '<div class="' + cardCls + '">' +
+        '<div class="centre-head">' +
+          '<div>' +
+            '<div class="centre-name">' + escapeHtml(c.name) + '</div>' +
+            '<div class="centre-sub">Centre ' + escapeHtml(c.id) + ' · ' + escapeHtml(c.testId) + ' · ' + escapeHtml(duration) + ' min</div>' +
+          '</div>' +
+          badge +
+        '</div>' +
+        '<div class="centre-body">' + body + '</div>' +
+        actions +
+      '</div>';
+    }).join('');
+
+    container.querySelectorAll('[data-assign]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        assignNext(btn.getAttribute('data-assign'));
+      });
+    });
+    container.querySelectorAll('[data-complete]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        completeTest(btn.getAttribute('data-complete'));
+      });
+    });
+
+    tickCountdowns();
+  }
+
+  function renderScheduleSequence(container) {
+    if (!container) return;
+    if (state.patients.length === 0) {
+      container.innerHTML = '<div class="empty-state"><div class="empty-title">No patients yet</div><div class="empty-desc">Add patients to see their test sequence.</div></div>';
+      return;
+    }
+    if (state.queueError) {
+      container.innerHTML = '<div class="error-state"><div class="error-title">Queue computation failed</div><div class="error-desc">' + escapeHtml(state.queueError) + '</div></div>';
+      return;
+    }
+    if (!state.queue || !state.queue.perPatient) {
+      container.innerHTML = '<div class="loading-state"><div class="spinner"></div>Computing schedule…</div>';
+      return;
+    }
+
+    container.innerHTML = state.patients.map(function (p) {
+      var steps = state.queue.perPatient[p.id] || [];
+      if (steps.length === 0) {
+        return '<div class="patient-card"><div class="patient-head"><span class="patient-id">' + escapeHtml(p.id) + '</span></div><div style="font-size:12.5px;color:var(--text-3);">No tests scheduled.</div></div>';
+      }
+      return '<div class="patient-card">' +
+        '<div class="patient-head">' +
+          '<div>' +
+            '<span class="patient-id">' + escapeHtml(p.id) + '</span>' +
+            (p.name ? '<span class="patient-name">' + escapeHtml(p.name) + '</span>' : '') +
+          '</div>' +
+          '<span class="badge badge-green">' + steps.length + ' test' + (steps.length > 1 ? 's' : '') + '</span>' +
+        '</div>' +
+        '<div class="sequence-list">' +
+          steps.map(function (s, i) {
+            var name = s.testName || getTestName(s.testId);
+            var centreName = s.centreName || s.centreId;
+            return '<div class="sequence-step">' +
+              '<span class="step-num">' + (i + 1) + '</span>' +
+              '<span class="step-test">' + escapeHtml(name) + '</span>' +
+              '<span class="step-centre">· ' + escapeHtml(centreName) + ' (' + escapeHtml(s.centreId) + ')</span>' +
+              '<span class="step-time">' + (s.startTime >= 0 ? '+ ' + s.startTime + ' min' : s.startTime + ' min') + ' → +' + s.endTime + ' min</span>' +
+            '</div>';
+          }).join('') +
+        '</div>' +
+      '</div>';
+    }).join('');
+  }
+
+  function renderScheduleTimeline(container) {
+    if (!container) return;
+    if (!state.queue || !Array.isArray(state.queue.events) || state.queue.events.length === 0) {
+      container.innerHTML = '<div class="empty-state" style="padding:24px 12px;"><div class="empty-title">No events yet</div><div class="empty-desc">Add patients to see the predicted timeline.</div></div>';
+      return;
+    }
+    container.innerHTML = state.queue.events.map(function (e) {
+      var isStart = e.type === 'start';
+      var color = isStart ? 'var(--primary)' : 'var(--green)';
+      var label = isStart ? 'Start' : 'Complete';
+      var icon = isStart ? '▶' : '✓';
+      var testName = e.testName || getTestName(e.testId);
+      var centreName = e.centreName || '';
+      return '<div class="timeline-row">' +
+        '<span class="timeline-time">' + e.time + ' min</span>' +
+        '<span class="timeline-event">' +
+          '<strong style="color:' + color + ';">' + icon + ' ' + label + '</strong>' +
+          ' · <strong>' + escapeHtml(e.patientId) + '</strong>' +
+          ' · ' + escapeHtml(testName) +
+          ' <span class="centre-chip">' + escapeHtml(e.centreId) + (centreName ? ' · ' + escapeHtml(centreName) : '') + '</span>' +
+        '</span>' +
+      '</div>';
+    }).join('');
+  }
+
+  function renderOverviewSchedule() {
+    var el = document.getElementById('overviewSchedule');
+    if (!el) return;
+    if (state.patients.length === 0) {
+      el.innerHTML = '<div class="empty-state" style="padding:32px 20px;"><div class="empty-title">No schedule yet</div><div class="empty-desc">Add patients to compute a queue schedule.</div></div>';
+      return;
+    }
+    if (state.queueError) {
+      el.innerHTML = '<div class="error-state" style="padding:24px;"><div class="error-title">Queue failed</div><div class="error-desc">' + escapeHtml(state.queueError) + '</div></div>';
+      return;
+    }
+    if (!state.queue) {
+      el.innerHTML = '<div class="loading-state"><div class="spinner"></div>Computing…</div>';
+      return;
+    }
+    var m = state.queue.metrics || {};
+    el.innerHTML = '<div class="card-body">' +
+      '<div style="display:flex;flex-wrap:wrap;gap:16px;align-items:center;">' +
+        '<div><div style="font-size:12px;color:var(--text-3);">Makespan</div><div style="font-size:22px;font-weight:700;">' + (state.queue.totalTime || 0) + ' min</div></div>' +
+        '<div style="width:1px;height:40px;background:var(--border);"></div>' +
+        '<div><div style="font-size:12px;color:var(--text-3);">Tests</div><div style="font-size:22px;font-weight:700;">' + (m.testsCompleted || 0) + '</div></div>' +
+        '<div style="width:1px;height:40px;background:var(--border);"></div>' +
+        '<div><div style="font-size:12px;color:var(--text-3);">Patients</div><div style="font-size:22px;font-weight:700;">' + (m.patientsCompleted || 0) + '</div></div>' +
+        '<div style="width:1px;height:40px;background:var(--border);"></div>' +
+        '<div><div style="font-size:12px;color:var(--text-3);">Wait time</div><div style="font-size:22px;font-weight:700;">' + (m.sumWaitingTimes || 0) + ' min</div></div>' +
+      '</div>' +
+    '</div>';
+  }
+
+  function renderOverviewPage() {
+    renderStats();
+    renderCentreCards(document.getElementById('overviewCentres'), true);
+    renderOverviewSchedule();
+  }
+  function renderQueuePage() { renderTestPicker(); renderPatientList(); }
+  function renderCentresPage() { renderCentreCards(document.getElementById('centresContent'), false); }
+  function renderSchedulePage() {
+    renderScheduleSequence(document.getElementById('scheduleSequence'));
+    renderScheduleTimeline(document.getElementById('scheduleTimeline'));
+  }
+  function renderCurrentPage() {
+    if (state.page === 'overview') renderOverviewPage();
+    else if (state.page === 'queue') renderQueuePage();
+    else if (state.page === 'centres') renderCentresPage();
+    else if (state.page === 'schedule') renderSchedulePage();
+  }
+
+  // ---------- Navigation ----------
+  var PAGES = {
+    overview: { title: 'Overview', sub: 'Queue status at a glance' },
+    queue: { title: 'Patient Queue', sub: 'Register and manage patients' },
+    centres: { title: 'Testing Centres', sub: 'Live machine status' },
+    schedule: { title: 'Queue Schedule', sub: 'Predicted test sequence & timeline' }
+  };
+  function navigate(page) {
+    if (!PAGES[page]) return;
+    state.page = page;
+    document.querySelectorAll('.page').forEach(function (s) {
+      s.classList.toggle('active', s.id === 'page-' + page);
+    });
+    document.querySelectorAll('.nav-item').forEach(function (n) {
+      n.classList.toggle('active', n.getAttribute('data-page') === page);
+    });
+    var t = document.getElementById('pageTitle');
+    var s = document.getElementById('pageSub');
+    if (t) t.textContent = PAGES[page].title;
+    if (s) s.textContent = PAGES[page].sub;
+    closeSidebar();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    renderCurrentPage();
+  }
+  function openSidebar() {
+    document.getElementById('sidebar').classList.add('open');
+    document.getElementById('sidebarOverlay').classList.add('open');
+  }
+  function closeSidebar() {
+    document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('sidebarOverlay').classList.remove('open');
+  }
+
+  var pollingGuard = false;
+  function pollTick() {
+    if (pollingGuard) return;
+    pollingGuard = true;
+    refreshAll().catch(function () {}).then(function () {
+      pollingGuard = false;
+    });
+  }
+
+  function init() {
+    var now = new Date();
+    var hour = now.getHours();
+    var ge = document.getElementById('greeting');
+    if (ge) ge.textContent = hour < 12 ? 'Good Morning' : (hour < 17 ? 'Good Afternoon' : 'Good Evening');
+
+    document.querySelectorAll('.nav-item').forEach(function (n) {
+      n.addEventListener('click', function () { navigate(n.getAttribute('data-page')); });
+    });
+    document.addEventListener('click', function (e) {
+      var t = e.target.closest('[data-goto]');
+      if (t) navigate(t.getAttribute('data-goto'));
+    });
+    var mb = document.getElementById('menuBtn');
+    if (mb) mb.addEventListener('click', openSidebar);
+    var so = document.getElementById('sidebarOverlay');
+    if (so) so.addEventListener('click', closeSidebar);
+
+    var addBtn = document.getElementById('qAddPatientBtn');
+    if (addBtn) addBtn.addEventListener('click', addPatient);
+    var pidIn = document.getElementById('qPatientName');
+    if (pidIn) pidIn.addEventListener('keydown', function (e) { if (e.key === 'Enter') addPatient(); });
+    var resetBtn = document.getElementById('queueResetBtn');
+    if (resetBtn) resetBtn.addEventListener('click', resetQueue);
+    var qr = document.getElementById('queueRefreshBtn');
+    if (qr) qr.addEventListener('click', refreshAll);
+    var cr = document.getElementById('centresRefreshBtn');
+    if (cr) cr.addEventListener('click', function () { loadCentres().then(loadQueue); });
+    var sr = document.getElementById('scheduleRefreshBtn');
+    if (sr) sr.addEventListener('click', refreshAll);
+
+    var importBtn = document.getElementById('centresImportBtn');
+    if (importBtn) importBtn.addEventListener('click', openImportModal);
+    var fileIn = document.getElementById('importFileInput');
+    if (fileIn) fileIn.addEventListener('change', function () { handleFileSelected(fileIn.files[0]); });
+
+    var dz = document.getElementById('importDropzone');
+    if (dz) {
+      dz.addEventListener('dragover', function (e) { e.preventDefault(); dz.style.borderColor = 'var(--primary)'; });
+      dz.addEventListener('dragleave', function () { dz.style.borderColor = ''; });
+      dz.addEventListener('drop', function (e) {
+        e.preventDefault();
+        dz.style.borderColor = '';
+        if (e.dataTransfer.files && e.dataTransfer.files[0]) handleFileSelected(e.dataTransfer.files[0]);
+      });
+    }
+
+    var modal = document.getElementById('importModal');
+    if (modal) modal.addEventListener('click', function (e) {
+      if (e.target === modal) closeImportModal();
+    });
+
+    renderHealth();
+    renderNextPatientId();
+    renderCurrentPage();
+    loadHealth();
+    loadTests();
+    loadCentres();
+    loadPatients().then(loadQueue);
+
+    setInterval(loadHealth, 20000);
+    setInterval(pollTick, 2000);
+  }
+
+  window.openImportModal = openImportModal;
+  window.closeImportModal = closeImportModal;
+  window.applyImport = applyImport;
+  window.downloadJsonTemplate = downloadJsonTemplate;
+  window.downloadExcelTemplate = downloadExcelTemplate;
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
+</script>
+</body>
+</html>
