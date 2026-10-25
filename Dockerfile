@@ -10,6 +10,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /app
 
 COPY main.cpp .
+COPY index.html .
 
 RUN g++ -std=c++17 -O2 -pthread main.cpp -o hospital
 
