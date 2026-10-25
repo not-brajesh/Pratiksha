@@ -22,28 +22,38 @@ using namespace std;
 
 // ============================================================
 // PRATIKSHA — Patient Routing & Intelligent Test Queue Handling
-// Backend v1.4
+// Backend v1.5
 //
-// Changes over v1.3:
-//   - computeQueue() now marks already-in-service patients as
-//     inService=true so they cannot be double-booked.      [STEP 1]
-//   - handleCompleteTest() uses strict assignment validation
-//     (patient must have an active centre + matching test). [STEP 2]
-//   - MOVE_TIME_MINUTES set to 3 (configurable).            [STEP 4]
-//   - Scheduling algorithm unchanged (global greedy step).  [STEP 3 pending]
+// Changes over v1.4:
+//   [Update 1] QueueStep now includes centreId.
+//   [Update 2] QueueEvent now includes testId (+ serialized).
+//   [Update 3] computePriority uses ACTUAL sim wait time
+//              instead of registration-order proxy.
+//   [Update 4] scheduleStep uses stable_sort + deterministic
+//              registration-order tiebreaker.
+//   [Update 5] computeQueue:
+//               - Tracks accumulated wait/movement per patient.
+//               - Adds pre-existing in-progress tests to
+//                 perPatient timeline (with negative startTime).
+//               - Emits testId in every event.
+//   [Update 6] Metrics now report sumMovementTimes,
+//              testsCompleted, and only fully-completed
+//              patients in patientsCompleted.
+//   [Update 8] handleNextPatient uses registration order
+//              as wait proxy (sim is fresh, readyAt=0).
 // ============================================================
 
 namespace Config {
     constexpr int PORT = 8080;
     constexpr int BACKLOG = 10;
     constexpr size_t MAX_REQUEST_SIZE = 32768;
-    constexpr int QUEUE_MAX_TIME = 5000;   // safety cap
+    constexpr int QUEUE_MAX_TIME = 5000;
     constexpr long INF_TIME = 1000000000L;
-    constexpr double LAMBDA = 0.5;         // load-balance weight
-    constexpr int MOVE_TIME_MINUTES = 3;   // realistic hospital movement
+    constexpr double LAMBDA = 0.5;
+    constexpr int MOVE_TIME_MINUTES = 3;
 
     const string APP_NAME = "PRATIKSHA";
-    const string VERSION = "1.4.0";
+    const string VERSION = "1.5.0";
 }
 
 // ------------------------------------------------------------
@@ -74,7 +84,6 @@ struct Patient {
     PatientStatus status = PatientStatus::WAITING;
     bool emergency = false;
 
-    // Real-state tracking (which centre/test is this patient in right now)
     string currentCentre = "";
     string currentTestId = "";
 };
@@ -93,17 +102,21 @@ struct TestingCentre {
     bool available() const { return currentPatient.empty(); }
 };
 
+// [Update 1] centreId added.
 struct QueueStep {
     string testId;
+    string centreId;
     int startTime;
     int duration;
 };
 
+// [Update 2] testId added.
 struct QueueEvent {
     int time;
     string type;
     string centreId;
     string patientId;
+    string testId;
 };
 
 struct CentreState {
@@ -114,10 +127,13 @@ struct CentreState {
     int completedCount;
 };
 
+// [Update 6] expanded metrics.
 struct QueueMetrics {
     int makespan = 0;
     long sumCompletionTimes = 0;
     long sumWaitingTimes = 0;
+    long sumMovementTimes = 0;
+    int testsCompleted = 0;
     int patientsCompleted = 0;
 };
 
@@ -427,11 +443,15 @@ struct SimPatient {
     long addedSeq = 0;
     bool emergency = false;
 
-    int totalWaitingMinutes = 0;
     int testsCompleted = 0;
     bool inService = false;
     string currentCentreId = "";
-    long readyAt = 0;   // earliest time (sim-minutes) this patient can start next test
+    long readyAt = 0;
+
+    // [Update 5/6] metrics tracking
+    long accumulatedWait = 0;
+    long accumulatedMovement = 0;
+    long lastCompletionTime = 0;
 };
 
 struct SimCentre {
@@ -457,6 +477,8 @@ struct SimAssignment {
 // Scheduling core
 // ------------------------------------------------------------
 
+// [Update 3] Actual wait in sim replaces maxSeq-addedSeq proxy.
+// [Update 4] Deterministic tiebreaker by registration order.
 double computePriority(
     const SimPatient& p,
     const SimCentre& c,
@@ -465,14 +487,30 @@ double computePriority(
     int waitingForTest,
     int centresForTest
 ) {
-    double wait = (double)(currentTime + (maxSeq - p.addedSeq));
-    double score = wait * 100.0;
-    if (p.emergency) score += 1e12;
+    (void)maxSeq;  // kept in signature for stability
+
+    double actualWait = (double)(currentTime - p.readyAt);
+    if (actualWait < 0) actualWait = 0;
+
+    double score = 0.0;
+
+    // Emergency: very large priority
+    if (p.emergency) score += 1e9;
+
+    // Fairness: actual wait in sim
+    score += actualWait * 100.0;
+
+    // Prefer shorter tests (SPT heuristic): helps average completion
     if (c.duration > 0) score += 1000.0 / c.duration;
+
+    // Load balance: prefer less-contended tests
     if (centresForTest > 0) {
-        double load = (double)waitingForTest / (double)centresForTest;
-        score -= Config::LAMBDA * load;
+        score -= Config::LAMBDA * ((double)waitingForTest / (double)centresForTest);
     }
+
+    // Deterministic tiebreaker: earlier-registered wins
+    score -= (double)p.addedSeq * 1e-6;
+
     return score;
 }
 
@@ -520,7 +558,8 @@ vector<SimAssignment> scheduleStep(
         }
     }
 
-    std::sort(candidates.begin(), candidates.end(),
+    // stable_sort keeps insertion order for ties (deterministic).
+    std::stable_sort(candidates.begin(), candidates.end(),
         [](const SimAssignment& a, const SimAssignment& b) {
             return a.priority > b.priority;
         });
@@ -571,22 +610,15 @@ QueueResult computeQueue(const ServerState& state) {
         sc.busyMinutes = c.busyMinutes;
         sc.completedCount = c.completedCount;
         if (!c.currentPatient.empty()) {
-            // Real state has an assignment in progress — sim starts with it "running"
             sc.currentPatient = c.currentPatient;
             sc.busyUntil = (c.remainingMin > 0 ? (long)c.remainingMin : (long)c.durationMinutes);
         }
         simC.push_back(sc);
     }
 
-    // ============================================================
-    // STEP 1 — Mark patients already in service.
-    // A patient must not be assigned to another centre until
-    // their current test has completed.
-    // ============================================================
+    // STEP 1 (kept from v1.4): mark in-service patients.
     for (const auto& c : simC) {
-        if (c.currentPatient.empty()) {
-            continue;
-        }
+        if (c.currentPatient.empty()) continue;
         for (auto& p : sim) {
             if (p.id == c.currentPatient) {
                 p.inService = true;
@@ -595,6 +627,17 @@ QueueResult computeQueue(const ServerState& state) {
                 break;
             }
         }
+    }
+
+    // [Update 5] Represent pre-existing in-progress tests in perPatient.
+    // startTime may be negative (started before sim time 0).
+    for (const auto& sc : simC) {
+        if (sc.currentPatient.empty()) continue;
+        if (!result.perPatient.count(sc.currentPatient)) continue;
+        long startTime = sc.busyUntil - sc.duration;  // could be negative
+        result.perPatient[sc.currentPatient].push_back({
+            sc.testId, sc.id, (int)startTime, sc.duration
+        });
     }
 
     long time = 0;
@@ -610,13 +653,19 @@ QueueResult computeQueue(const ServerState& state) {
                         }
                         p.inService = false;
                         p.testsCompleted++;
-                        p.readyAt = completeTime + Config::MOVE_TIME_MINUTES;
+                        p.lastCompletionTime = completeTime;
+                        if (!p.remaining.empty()) {
+                            p.readyAt = completeTime + Config::MOVE_TIME_MINUTES;
+                            p.accumulatedMovement += Config::MOVE_TIME_MINUTES;
+                        } else {
+                            p.readyAt = completeTime;
+                        }
                         p.currentCentreId = "";
                         break;
                     }
                 }
                 result.events.push_back({
-                    (int)completeTime, "complete", c.id, c.currentPatient
+                    (int)completeTime, "complete", c.id, c.currentPatient, c.testId
                 });
                 c.completedCount++;
                 c.busyMinutes += c.duration;
@@ -639,14 +688,19 @@ QueueResult computeQueue(const ServerState& state) {
             for (auto& x : sim) if (x.id == a.patientId) { p = &x; break; }
             if (!c || !p) continue;
 
+            // [Update 5] Track actual wait
+            if (time >= p->readyAt) {
+                p->accumulatedWait += (time - p->readyAt);
+            }
+
             c->currentPatient = p->id;
             c->busyUntil = time + c->duration;
             p->inService = true;
             p->currentCentreId = c->id;
 
-            result.events.push_back({(int)time, "start", c->id, p->id});
+            result.events.push_back({(int)time, "start", c->id, p->id, c->testId});
             result.perPatient[p->id].push_back({
-                c->testId, (int)time, c->duration
+                c->testId, c->id, (int)time, c->duration
             });
         }
 
@@ -665,6 +719,7 @@ QueueResult computeQueue(const ServerState& state) {
     }
 
     result.totalTime = (int)time;
+    result.metrics.makespan = result.totalTime;
 
     // Final centre states
     for (const auto& sc : simC) {
@@ -677,22 +732,18 @@ QueueResult computeQueue(const ServerState& state) {
         result.centres.push_back(cs);
     }
 
-    // Metrics
-    for (auto& kv : result.perPatient) {
-        long maxEnd = 0;
-        long totalDur = 0;
-        for (auto& step : kv.second) {
-            long end = step.startTime + step.duration;
-            if (end > maxEnd) maxEnd = end;
-            totalDur += step.duration;
+    // [Update 6] Metrics: accurate wait/movement + full completion count.
+    for (auto& p : sim) {
+        result.metrics.sumWaitingTimes += p.accumulatedWait;
+        result.metrics.sumMovementTimes += p.accumulatedMovement;
+        result.metrics.testsCompleted += p.testsCompleted;
+
+        if (p.remaining.empty()) {
+            result.metrics.sumCompletionTimes += p.lastCompletionTime;
+            result.metrics.patientsCompleted++;
         }
-        if (maxEnd > result.metrics.makespan) result.metrics.makespan = (int)maxEnd;
-        result.metrics.sumCompletionTimes += maxEnd;
-        long w = maxEnd - totalDur;
-        if (w < 0) w = 0;
-        result.metrics.sumWaitingTimes += w;
-        result.metrics.patientsCompleted++;
     }
+
     return result;
 }
 
@@ -846,6 +897,7 @@ string handleGetQueue(const ServerState& st) {
     }
     j << "],";
 
+    // [Update 1] perPatient now includes centreId
     j << "\"perPatient\":{";
     bool firstP = true;
     for (auto& kv : r.perPatient) {
@@ -855,27 +907,42 @@ string handleGetQueue(const ServerState& st) {
         for (size_t i = 0; i < kv.second.size(); ++i) {
             if (i) j << ",";
             j << "{\"testId\":\"" << escapeJson(kv.second[i].testId) << "\","
+              << "\"testName\":\"" << escapeJson(st.testName(kv.second[i].testId)) << "\","
+              << "\"centreId\":\"" << escapeJson(kv.second[i].centreId) << "\","
+              << "\"centreName\":\""
+              << escapeJson(st.findCentre(kv.second[i].centreId) ?
+                              st.findCentre(kv.second[i].centreId)->name : "") << "\","
               << "\"startTime\":" << kv.second[i].startTime << ","
-              << "\"duration\":" << kv.second[i].duration << "}";
+              << "\"duration\":" << kv.second[i].duration << ","
+              << "\"endTime\":" << (kv.second[i].startTime + kv.second[i].duration) << "}";
         }
         j << "]";
     }
     j << "},";
 
+    // [Update 2] events now include testId (+ testName convenience)
     j << "\"events\":[";
     for (size_t i = 0; i < r.events.size(); ++i) {
         if (i) j << ",";
         j << "{\"time\":" << r.events[i].time
           << ",\"type\":\"" << escapeJson(r.events[i].type) << "\""
           << ",\"centreId\":\"" << escapeJson(r.events[i].centreId) << "\""
-          << ",\"patientId\":\"" << escapeJson(r.events[i].patientId) << "\"}";
+          << ",\"centreName\":\""
+          << escapeJson(st.findCentre(r.events[i].centreId) ?
+                          st.findCentre(r.events[i].centreId)->name : "") << "\""
+          << ",\"patientId\":\"" << escapeJson(r.events[i].patientId) << "\""
+          << ",\"testId\":\"" << escapeJson(r.events[i].testId) << "\""
+          << ",\"testName\":\"" << escapeJson(st.testName(r.events[i].testId)) << "\"}";
     }
     j << "],";
 
+    // [Update 6] Expanded metrics
     j << "\"metrics\":{"
       << "\"makespan\":" << r.metrics.makespan << ","
       << "\"sumCompletionTimes\":" << r.metrics.sumCompletionTimes << ","
       << "\"sumWaitingTimes\":" << r.metrics.sumWaitingTimes << ","
+      << "\"sumMovementTimes\":" << r.metrics.sumMovementTimes << ","
+      << "\"testsCompleted\":" << r.metrics.testsCompleted << ","
       << "\"patientsCompleted\":" << r.metrics.patientsCompleted << "}";
 
     j << "}";
@@ -898,12 +965,16 @@ string handleNextPatient(ServerState& st, const string& centreId) {
     vector<SimPatient> sim;
     for (auto& p : st.patients) {
         if (p.status != PatientStatus::WAITING) continue;
-        if (!p.currentCentre.empty()) continue;  // in service
+        if (!p.currentCentre.empty()) continue;
         SimPatient sp;
         sp.id = p.id;
         sp.addedSeq = p.addedSeq;
         sp.emergency = p.emergency;
-        sp.readyAt = 0;
+
+        // [Update 8] Registration order as wait proxy:
+        // currentTime (0) - readyAt (= -(maxSeq-addedSeq)) = maxSeq - addedSeq.
+        sp.readyAt = -(maxSeq - p.addedSeq);
+
         for (auto& ts : p.testStates) {
             if (ts.status == TestStatus::WAITING) sp.remaining.push_back(ts.testId);
         }
@@ -938,7 +1009,6 @@ string handleNextPatient(ServerState& st, const string& centreId) {
     Patient* p = st.findPatient(chosen->patientId);
     if (!p) return errorResponse(500, "Internal Server Error", "Patient vanished");
 
-    // Reserve atomically
     p->currentCentre = centreId;
     p->currentTestId = chosen->testId;
     centre->currentPatient = p->id;
@@ -977,70 +1047,35 @@ string handleCompleteTest(ServerState& st, const string& body) {
         return errorResponse(409, "Conflict",
             "Test is not pending (already completed or unknown)");
 
-    // ============================================================
-    // STEP 2 — Strict assignment validation.
-    // Rules enforced:
-    //   A. Patient must have an active centre assignment.
-    //   B. Patient's active test must match the completed test.
-    //   C. Centre provided in request (if any) must match assignment.
-    //   D. Centre must still be serving this patient.
-    //   E. Centre's configured test and its current test must match.
-    // ============================================================
-
+    // Strict assignment validation (STEP 2 from v1.4)
     if (p->currentCentre.empty()) {
-        return errorResponse(
-            409,
-            "Conflict",
-            "Patient is not assigned to an active testing centre"
-        );
+        return errorResponse(409, "Conflict",
+            "Patient is not assigned to an active testing centre");
     }
-
     if (p->currentTestId != testId) {
-        return errorResponse(
-            409,
-            "Conflict",
-            "Requested test does not match the patient's active test"
-        );
+        return errorResponse(409, "Conflict",
+            "Requested test does not match the patient's active test");
     }
-
     if (!centreId.empty() && centreId != p->currentCentre) {
-        return errorResponse(
-            409,
-            "Conflict",
-            "Patient is assigned to a different centre"
-        );
+        return errorResponse(409, "Conflict",
+            "Patient is assigned to a different centre");
     }
-
     centreId = p->currentCentre;
 
     TestingCentre* assignedCentre = st.findCentre(centreId);
-
     if (!assignedCentre) {
-        return errorResponse(
-            404,
-            "Not Found",
-            "Assigned testing centre not found"
-        );
+        return errorResponse(404, "Not Found", "Assigned testing centre not found");
     }
-
     if (assignedCentre->currentPatient != patientId) {
-        return errorResponse(
-            409,
-            "Conflict",
-            "Centre is not serving this patient"
-        );
+        return errorResponse(409, "Conflict",
+            "Centre is not serving this patient");
     }
-
     if (assignedCentre->currentTestId != testId ||
         assignedCentre->testId != testId) {
-        return errorResponse(
-            409,
-            "Conflict",
-            "Test does not match the centre assignment"
-        );
+        return errorResponse(409, "Conflict",
+            "Test does not match the centre assignment");
     }
 
-    // ---- Apply completion (validation passed) ----
     ts->status = TestStatus::COMPLETED;
 
     assignedCentre->currentPatient = "";
