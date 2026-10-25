@@ -37,6 +37,11 @@ using namespace std;
 //   sim-centres build loop, the scheduler considers only X's
 //   eligibility, guaranteeing a match whenever one exists.
 //
+//   [PORT-config] PORT is now read from the PORT environment
+//   variable (validated 1–65535). Falls back to 8080 when unset
+//   or invalid. Backlog / max-request / timing settings are
+//   unchanged.
+//
 // Existing backend features (unchanged since v1.7.0):
 //   [Step 1] Auto-generated patient IDs (P001, P002, …)
 //   [Step 2] Single machine per testing centre (A1/B1/C1/D1)
@@ -48,7 +53,22 @@ using namespace std;
 // ============================================================
 
 namespace Config {
-    constexpr int PORT = 8080;
+    // [PORT-config] Read port from env var PORT with validation,
+    // falling back to 8080 when unset / invalid.
+    inline int getPort() {
+        const char* envPort = std::getenv("PORT");
+
+        if (envPort != nullptr) {
+            int port = std::atoi(envPort);
+
+            if (port > 0 && port <= 65535) {
+                return port;
+            }
+        }
+
+        return 8080;
+    }
+
     constexpr int BACKLOG = 10;
     constexpr size_t MAX_REQUEST_SIZE = 131072; // 128KB
     constexpr int QUEUE_MAX_TIME = 5000;
@@ -1716,7 +1736,7 @@ int createServerSocket() {
     }
     sockaddr_in addr{};
     addr.sin_family = AF_INET;
-    addr.sin_port = htons(Config::PORT);
+    addr.sin_port = htons(Config::getPort());
     addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
     if (::bind(s, reinterpret_cast<sockaddr*>(&addr), sizeof(addr)) < 0) {
         cerr << "[ERROR] bind(): " << strerror(errno) << endl;
@@ -1745,7 +1765,7 @@ int main() {
     if (srv < 0) { cerr << "[FATAL] Server could not start." << endl; return 1; }
 
     cout << "[SUCCESS] C++ server started." << endl
-         << "[SERVER] http://127.0.0.1:" << Config::PORT << endl
+         << "[SERVER] http://127.0.0.1:" << Config::getPort() << endl
          << "[API] GET    /api/health" << endl
          << "[API] GET    /api/tests" << endl
          << "[API] GET    /api/centres" << endl
