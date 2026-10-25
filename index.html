@@ -286,7 +286,44 @@ button{font-family:inherit;}
   border:1px solid var(--amber-border);color:#92400E;font-size:12.5px;
   line-height:1.55;margin-bottom:16px;}
 .sidebar-overlay{display:none;}
-@media(max-width:1024px){.stats-grid{grid-template-columns:repeat(2,1fr);}}
+
+/* ═════════════════════════════════════════════════════════════
+   NEW: Auto / Manual assignment mode toggle
+   ═════════════════════════════════════════════════════════════ */
+.mode-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px;
+    background: #F1F5F9;
+    border: 1px solid #E2E8F0;
+    border-radius: 12px;
+}
+
+.mode-btn {
+    border: none;
+    border-radius: 8px;
+    padding: 9px 14px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #64748B;
+    background: transparent;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.mode-btn.active {
+    background: #FFFFFF;
+    color: #2563EB;
+    box-shadow: 0 1px 4px rgba(15, 23, 42, 0.12);
+}
+
+.mode-btn:focus-visible {
+    outline: 2px solid #2563EB;
+    outline-offset: 2px;
+}
+
+@media (max-width: 1024px){.stats-grid{grid-template-columns:repeat(2,1fr);}}
 @media(max-width:768px){
   .sidebar{transform:translateX(-100%);box-shadow:var(--shadow-lg);}
   .sidebar.open{transform:none;}
@@ -303,6 +340,15 @@ button{font-family:inherit;}
   .btn{min-height:44px;}
   .form-input,.form-select{min-height:44px;font-size:16px;}
   .live-datetime{display:none;}
+}
+@media(max-width:700px){
+  .page-header-actions {
+    width: 100%;
+    align-items: center;
+  }
+  .mode-toggle {
+    margin-left: auto;
+  }
 }
 @media(max-width:520px){
   .stats-grid{grid-template-columns:1fr;}
@@ -526,6 +572,23 @@ button{font-family:inherit;}
               <svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/><path d="M3 21v-5h5"/></svg>
               Refresh
             </button>
+
+            <!-- NEW: Auto / Manual toggle -->
+            <div class="mode-toggle" role="group" aria-label="Assignment mode">
+              <button
+                  type="button"
+                  class="mode-btn"
+                  id="autoModeBtn">
+                  Auto
+              </button>
+
+              <button
+                  type="button"
+                  class="mode-btn"
+                  id="manualModeBtn">
+                  Manual
+              </button>
+            </div>
           </div>
         </div>
 
@@ -662,6 +725,10 @@ button{font-family:inherit;}
   var centreEndMs = {};
   var pendingImportConfig = null;
 
+  // ---------- Automatic assignment mode ----------
+  var autoMode = localStorage.getItem('pratikshaAssignmentMode') !== 'manual';
+  var autoCycleBusy = false;
+
   // ---------- API helpers ----------
   function apiGet(path) {
     return fetch(path, { cache: 'no-store' }).then(function (res) {
@@ -733,6 +800,49 @@ button{font-family:inherit;}
     toastTimer = setTimeout(function () { el.remove(); }, 4200);
   }
 
+  // ---------- Auto / Manual mode controls ----------
+  function updateAssignmentModeUI() {
+      var autoBtn = document.getElementById('autoModeBtn');
+      var manualBtn = document.getElementById('manualModeBtn');
+
+      if (autoBtn) {
+          autoBtn.classList.toggle('active', autoMode);
+          autoBtn.setAttribute('aria-pressed', String(autoMode));
+      }
+
+      if (manualBtn) {
+          manualBtn.classList.toggle('active', !autoMode);
+          manualBtn.setAttribute('aria-pressed', String(!autoMode));
+      }
+  }
+
+  function setAssignmentMode(mode) {
+      autoMode = mode === 'auto';
+
+      localStorage.setItem(
+          'pratikshaAssignmentMode',
+          autoMode ? 'auto' : 'manual'
+      );
+
+      updateAssignmentModeUI();
+
+      if (autoMode) {
+          showToast(
+              'Auto mode enabled. Available centres will receive eligible tests automatically.',
+              'success'
+          );
+
+          pollTick();
+      } else {
+          showToast(
+              'Manual mode enabled. Assign and complete tests manually.',
+              'success'
+          );
+      }
+
+      renderCurrentPage();
+  }
+
   // ---------- Live IST clock ----------
   function updateLiveClock() {
     var now = new Date();
@@ -802,10 +912,6 @@ button{font-family:inherit;}
     });
   }
 
-  // ═════════════════════════════════════════════════════════════
-  // FIX 1: loadCentres() — stamp _receivedAt on each centre so the
-  // Live Timeline can compute live elapsed/remaining on the client.
-  // ═════════════════════════════════════════════════════════════
   function loadCentres() {
     state.centresLoading = true;
     state.centresError = null;
@@ -978,6 +1084,97 @@ button{font-family:inherit;}
         return loadCentres().then(loadPatients).then(loadQueue);
       })
       .catch(function (err) { showToast(err.message, 'error'); });
+  }
+
+  // ---------- Automatic centre assignment ----------
+
+  function runAutoAssignmentCycle() {
+      if (!autoMode || autoCycleBusy) {
+          return Promise.resolve();
+      }
+
+      autoCycleBusy = true;
+
+      var changed = false;
+      var centres = state.centres.slice();
+
+      function processCentre(index) {
+          if (!autoMode || index >= centres.length) {
+              return changed ? refreshAll() : Promise.resolve();
+          }
+
+          var centre = centres[index];
+
+          // 1. A test has reached its configured duration.
+          // Automatically complete it, then assign the next eligible test.
+          if (
+              centre.status === 'AWAITING_CONFIRMATION' &&
+              centre.currentPatient &&
+              centre.currentTestId
+          ) {
+              return apiPost('/api/tests/complete', {
+                  patientId: centre.currentPatient,
+                  testId: centre.currentTestId,
+                  centreId: centre.id
+              })
+              .then(function () {
+                  changed = true;
+
+                  return apiGet(
+                      '/api/centres/' +
+                      encodeURIComponent(centre.id) +
+                      '/next'
+                  );
+              })
+              .then(function (data) {
+                  if (data && data.patient) {
+                      changed = true;
+                  }
+
+                  return processCentre(index + 1);
+              })
+              .catch(function (err) {
+                  console.error(
+                      'Auto assignment failed for ' + centre.id,
+                      err
+                  );
+
+                  return processCentre(index + 1);
+              });
+          }
+
+          // 2. Centre is empty: try assigning the next eligible test.
+          if (centre.status === 'AVAILABLE') {
+              return apiGet(
+                  '/api/centres/' +
+                  encodeURIComponent(centre.id) +
+                  '/next'
+              )
+              .then(function (data) {
+                  if (data && data.patient) {
+                      changed = true;
+                  }
+
+                  return processCentre(index + 1);
+              })
+              .catch(function (err) {
+                  console.error(
+                      'Auto assignment failed for ' + centre.id,
+                      err
+                  );
+
+                  return processCentre(index + 1);
+              });
+          }
+
+          // 3. Centre is busy: leave its current test running.
+          return processCentre(index + 1);
+      }
+
+      return processCentre(0)
+          .finally(function () {
+              autoCycleBusy = false;
+          });
   }
 
   // ---------- Import config modal ----------
@@ -1521,11 +1718,6 @@ button{font-family:inherit;}
     }).join('');
   }
 
-  // ═════════════════════════════════════════════════════════════
-  // FIX 2/3: Live Timeline — compute live elapsed/remaining from
-  // _receivedAt so timers tick smoothly without extra API calls.
-  // Display now uses fmtSeconds() (m:ss) instead of minutes only.
-  // ═════════════════════════════════════════════════════════════
   function renderLiveTimeline(container) {
     if (!container) return;
 
@@ -1533,18 +1725,15 @@ button{font-family:inherit;}
     var patients = Array.isArray(state.patients) ? state.patients : [];
     var now = Date.now();
 
-    // Only show centres that are actually busy
     var activeCentres = centres.filter(function (c) {
       return c.status === 'BUSY' && c.currentPatient;
     });
 
-    // Build a live view of currently running tests
     var events = activeCentres.map(function (c) {
       var patient = patients.find(function (p) {
         return p.id === c.currentPatient;
       });
 
-      // FIX 2: adjust for time since backend snapshot (browser-local ticking)
       var driftSec = Math.floor((now - Number(c._receivedAt || now)) / 1000);
 
       var elapsedSeconds = Math.max(
@@ -1590,7 +1779,6 @@ button{font-family:inherit;}
       var startTime = formatISTTime(e.startedAt);
       var expectedEnd = formatISTTime(e.expectedEnd);
 
-      // FIX 3: use fmtSeconds() so seconds tick visibly (m:ss)
       var elapsedDisplay = fmtSeconds(e.elapsedSeconds);
       var remainingDisplay = fmtSeconds(e.remainingSeconds);
 
@@ -1620,8 +1808,6 @@ button{font-family:inherit;}
     }).join('');
   }
 
-  // FIX 4: Re-render Live Timeline every second so seconds tick smoothly
-  // between backend 2-second polling refreshes. Only runs on Schedule page.
   setInterval(function () {
     if (state.page === 'schedule') {
       renderLiveTimeline(document.getElementById('liveTimeline'));
@@ -1710,12 +1896,23 @@ button{font-family:inherit;}
   }
 
   var pollingGuard = false;
+
+  // ---------- UPDATED: pollTick also runs auto cycle ----------
   function pollTick() {
-    if (pollingGuard) return;
-    pollingGuard = true;
-    refreshAll().catch(function () {}).then(function () {
-      pollingGuard = false;
-    });
+      if (pollingGuard) return;
+
+      pollingGuard = true;
+
+      refreshAll()
+          .then(function () {
+              return runAutoAssignmentCycle();
+          })
+          .catch(function (err) {
+              console.error('Polling failed:', err);
+          })
+          .finally(function () {
+              pollingGuard = false;
+          });
   }
 
   function init() {
@@ -1746,6 +1943,25 @@ button{font-family:inherit;}
     if (qr) qr.addEventListener('click', refreshAll);
     var cr = document.getElementById('centresRefreshBtn');
     if (cr) cr.addEventListener('click', function () { loadCentres().then(loadQueue); });
+
+    // NEW: Auto / Manual toggle listeners
+    var autoBtn = document.getElementById('autoModeBtn');
+    var manualBtn = document.getElementById('manualModeBtn');
+
+    if (autoBtn) {
+        autoBtn.addEventListener('click', function () {
+            setAssignmentMode('auto');
+        });
+    }
+
+    if (manualBtn) {
+        manualBtn.addEventListener('click', function () {
+            setAssignmentMode('manual');
+        });
+    }
+
+    updateAssignmentModeUI();
+
     var sr = document.getElementById('scheduleRefreshBtn');
     if (sr) sr.addEventListener('click', refreshAll);
 
