@@ -1,4 +1,4 @@
-```bash
+
 #!/bin/bash
 
 # PRATIKSHA Automatic Git Commit
@@ -17,4 +17,3 @@ while true; do
         git commit -m "Auto-update: $(date '+%Y-%m-%d %H:%M:%S')"
     fi
 done
-```
