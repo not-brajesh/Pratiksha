@@ -13,7 +13,6 @@
 <style>
 /* ============================================================
    PRATIKSHA — Frontend Styles
-   Design system: Apple + premium hospital software
    ============================================================ */
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -70,9 +69,7 @@ body {
 button { font-family: inherit; }
 .icon { flex-shrink: 0; display: inline-block; vertical-align: middle; }
 
-/* ------------------------------------------------------------
-   Sidebar
-   ------------------------------------------------------------ */
+/* Sidebar */
 .app { min-height: 100vh; }
 
 .sidebar {
@@ -213,15 +210,9 @@ button { font-family: inherit; }
     100% { box-shadow: 0 0 0 0 rgba(22,163,74,0); }
 }
 
-.status-detail {
-    font-size: 12px;
-    color: var(--text-3);
-    line-height: 1.4;
-}
+.status-detail { font-size: 12px; color: var(--text-3); line-height: 1.4; }
 
-/* ------------------------------------------------------------
-   Main layout
-   ------------------------------------------------------------ */
+/* Main */
 .main {
     margin-left: var(--sidebar-w);
     min-height: 100vh;
@@ -336,9 +327,7 @@ button { font-family: inherit; }
     letter-spacing: 0.02em;
 }
 
-/* ------------------------------------------------------------
-   Content
-   ------------------------------------------------------------ */
+/* Content */
 .content {
     padding: 28px;
     max-width: 1440px;
@@ -354,9 +343,7 @@ button { font-family: inherit; }
     to   { opacity: 1; transform: none; }
 }
 
-/* ------------------------------------------------------------
-   Welcome banner
-   ------------------------------------------------------------ */
+/* Welcome */
 .welcome {
     display: flex;
     align-items: center;
@@ -390,9 +377,7 @@ button { font-family: inherit; }
 .welcome-sub { font-size: 14px; color: var(--text-3); max-width: 540px; }
 .welcome-actions { display: flex; gap: 10px; flex-wrap: wrap; }
 
-/* ------------------------------------------------------------
-   Buttons
-   ------------------------------------------------------------ */
+/* Buttons */
 .btn {
     display: inline-flex;
     align-items: center;
@@ -431,9 +416,7 @@ button { font-family: inherit; }
 .btn-ghost:hover { background: var(--primary-soft); }
 .btn:disabled { opacity: 0.55; cursor: not-allowed; }
 
-/* ------------------------------------------------------------
-   Stats grid
-   ------------------------------------------------------------ */
+/* Stats grid */
 .stats-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -486,9 +469,7 @@ button { font-family: inherit; }
 .stat-hint.warn { color: var(--amber); }
 .stat-hint.ok   { color: var(--green); }
 
-/* ------------------------------------------------------------
-   Sections
-   ------------------------------------------------------------ */
+/* Sections */
 .section { margin-bottom: 24px; }
 .section-head {
     display: flex;
@@ -500,9 +481,7 @@ button { font-family: inherit; }
 .section-title { font-size: 15px; font-weight: 700; color: var(--text); letter-spacing: -0.01em; }
 .section-sub   { font-size: 13px; color: var(--text-3); margin-top: 2px; }
 
-/* ------------------------------------------------------------
-   Quick actions
-   ------------------------------------------------------------ */
+/* Quick actions */
 .actions-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -536,9 +515,7 @@ button { font-family: inherit; }
 .action-title { font-size: 13.5px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
 .action-desc  { font-size: 12.5px; color: var(--text-3); line-height: 1.45; }
 
-/* ------------------------------------------------------------
-   Card
-   ------------------------------------------------------------ */
+/* Card */
 .card {
     background: #fff;
     border: 1px solid var(--border);
@@ -547,9 +524,7 @@ button { font-family: inherit; }
 }
 .card-body { padding: 20px; }
 
-/* ------------------------------------------------------------
-   Table
-   ------------------------------------------------------------ */
+/* Table */
 .table-wrap { overflow-x: auto; }
 .data-table {
     width: 100%;
@@ -592,9 +567,7 @@ button { font-family: inherit; }
     font-size: 12px;
 }
 
-/* ------------------------------------------------------------
-   Badges
-   ------------------------------------------------------------ */
+/* Badges */
 .badge {
     display: inline-flex;
     align-items: center;
@@ -610,9 +583,7 @@ button { font-family: inherit; }
 .badge-grey  { background: #F1F5F9; color: var(--text-3); border-color: var(--border); }
 .badge-amber { background: var(--amber-soft); color: var(--amber); border-color: var(--amber-border); }
 
-/* ------------------------------------------------------------
-   States
-   ------------------------------------------------------------ */
+/* States */
 .loading-state {
     padding: 48px 24px;
     text-align: center;
@@ -657,9 +628,7 @@ button { font-family: inherit; }
 .error-title { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
 .error-desc  { font-size: 13px; color: var(--text-3); margin-bottom: 16px; max-width: 400px; margin-left: auto; margin-right: auto; }
 
-/* ------------------------------------------------------------
-   Key-value list (System Health)
-   ------------------------------------------------------------ */
+/* Key-value list */
 .kv-list { display: grid; gap: 0; }
 .kv-row {
     display: flex;
@@ -673,9 +642,7 @@ button { font-family: inherit; }
 .kv-key { font-size: 13px; color: var(--text-3); font-weight: 500; }
 .kv-val { font-size: 13px; color: var(--text); font-weight: 600; text-align: right; }
 
-/* ------------------------------------------------------------
-   Forms
-   ------------------------------------------------------------ */
+/* Forms */
 .form-card {
     background: #fff;
     border: 1px solid var(--border);
@@ -735,9 +702,7 @@ button { font-family: inherit; }
     line-height: 1.5;
 }
 
-/* ------------------------------------------------------------
-   Toolbar
-   ------------------------------------------------------------ */
+/* Toolbar */
 .toolbar {
     display: flex;
     align-items: center;
@@ -771,9 +736,7 @@ button { font-family: inherit; }
     box-shadow: 0 0 0 3px rgba(37,99,235,0.12);
 }
 
-/* ------------------------------------------------------------
-   Page header
-   ------------------------------------------------------------ */
+/* Page header */
 .page-header {
     margin-bottom: 20px;
     display: flex;
@@ -792,9 +755,7 @@ button { font-family: inherit; }
 .page-header p { font-size: 13.5px; color: var(--text-3); }
 .page-header-actions { display: flex; gap: 10px; flex-wrap: wrap; }
 
-/* ------------------------------------------------------------
-   Toast
-   ------------------------------------------------------------ */
+/* Toast */
 .toast {
     position: fixed;
     bottom: 24px;
@@ -821,9 +782,7 @@ button { font-family: inherit; }
     to   { opacity: 1; transform: none; }
 }
 
-/* ------------------------------------------------------------
-   Small stat row (Doctors page)
-   ------------------------------------------------------------ */
+/* Mini stats */
 .mini-stats {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -839,14 +798,153 @@ button { font-family: inherit; }
 .mini-stat-label { font-size: 12.5px; color: var(--text-3); font-weight: 500; margin-bottom: 6px; }
 .mini-stat-value { font-size: 22px; font-weight: 700; color: var(--text); letter-spacing: -0.02em; }
 
-/* ------------------------------------------------------------
-   Overlay (mobile)
-   ------------------------------------------------------------ */
+/* Overlay */
 .sidebar-overlay { display: none; }
 
 /* ------------------------------------------------------------
-   Responsive
+   DIAGNOSTIC QUEUE
    ------------------------------------------------------------ */
+.queue-grid {
+    display: grid;
+    grid-template-columns: 380px 1fr;
+    gap: 20px;
+    align-items: start;
+}
+@media (max-width: 1024px) {
+    .queue-grid { grid-template-columns: 1fr; }
+}
+
+.test-picker {
+    display: grid;
+    gap: 8px;
+}
+.test-pick {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all var(--ease);
+    font-size: 13px;
+}
+.test-pick:hover { border-color: var(--primary); background: #FAFBFC; }
+.test-pick input { accent-color: var(--primary); cursor: pointer; }
+.test-pick.checked { border-color: var(--primary); background: var(--primary-soft); }
+
+.centre-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+}
+@media (max-width: 720px) {
+    .centre-grid { grid-template-columns: 1fr; }
+}
+
+.centre-card {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    background: #fff;
+}
+.centre-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    gap: 10px;
+}
+.centre-name { font-weight: 600; font-size: 13.5px; color: var(--text); }
+.centre-sub  { font-size: 11px; color: var(--text-3); margin-top: 2px; }
+.centre-test-tag {
+    font-size: 11px;
+    padding: 3px 8px;
+    border-radius: 6px;
+    background: var(--primary-soft);
+    color: var(--primary);
+    font-weight: 700;
+    white-space: nowrap;
+}
+.centre-body { font-size: 12.5px; color: var(--text-3); line-height: 1.7; }
+.centre-body strong { color: var(--text); font-weight: 600; }
+.util-bar {
+    height: 6px;
+    background: #F1F5F9;
+    border-radius: 999px;
+    overflow: hidden;
+    margin-top: 6px;
+}
+.util-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--primary) 0%, #3B82F6 100%);
+    border-radius: 999px;
+    transition: width 0.4s ease;
+}
+
+.patient-list { display: flex; flex-direction: column; gap: 12px; }
+.patient-card {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    background: #fff;
+}
+.patient-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+.patient-id { font-weight: 700; font-size: 13px; color: var(--text); }
+
+.sequence-list { display: flex; flex-direction: column; gap: 2px; margin-top: 6px; }
+.sequence-step {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 12px;
+    color: var(--text-2);
+    padding: 6px 0;
+    border-bottom: 1px solid var(--border-2);
+}
+.sequence-step:last-child { border-bottom: none; }
+.step-num {
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    background: var(--primary-soft);
+    color: var(--primary);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 10.5px;
+    flex-shrink: 0;
+}
+.step-test { font-weight: 600; color: var(--text); }
+.step-time { color: var(--text-4); margin-left: auto; font-family: ui-monospace, monospace; font-size: 11px; }
+
+.timeline { display: flex; flex-direction: column; gap: 4px; max-height: 420px; overflow-y: auto; }
+.timeline-row {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    font-size: 12.5px;
+    padding: 7px 0;
+    border-bottom: 1px solid var(--border-2);
+}
+.timeline-row:last-child { border-bottom: none; }
+.timeline-time {
+    font-family: ui-monospace, monospace;
+    font-size: 11.5px;
+    color: var(--text-3);
+    min-width: 56px;
+    padding-top: 1px;
+}
+.timeline-event { flex: 1; color: var(--text-2); line-height: 1.5; }
+.timeline-event strong { color: var(--text); font-weight: 600; }
+
+/* Responsive */
 @media (max-width: 1024px) {
     .stats-grid   { grid-template-columns: repeat(2, 1fr); }
     .actions-grid { grid-template-columns: repeat(2, 1fr); }
@@ -928,6 +1026,11 @@ button { font-family: inherit; }
             <button class="nav-item" data-page="tests">
                 <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2v7.527a2 2 0 0 1-.211.896L4.72 20.55a1 1 0 0 0 .9 1.45h12.76a1 1 0 0 0 .9-1.45l-5.069-10.127A2 2 0 0 1 14 9.527V2"/><path d="M8.5 2h7"/><path d="M7 16h10"/></svg>
                 <span>Medical Tests</span>
+            </button>
+
+            <button class="nav-item" data-page="queue">
+                <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="10" y1="6" x2="21" y2="6"/><line x1="10" y1="12" x2="21" y2="12"/><line x1="10" y1="18" x2="21" y2="18"/><path d="M4 6h1v4"/><path d="M4 10h2"/><path d="M6 18H4c0-1 2-2 2-3s-1-1.5-2-1"/></svg>
+                <span>Diagnostic Queue</span>
             </button>
 
             <button class="nav-item" data-page="billing">
@@ -1103,7 +1206,93 @@ button { font-family: inherit; }
             </section>
 
             <!-- ====================================================
-                 PAGE: PATIENTS
+                 PAGE: DIAGNOSTIC QUEUE (NEW)
+                 ==================================================== -->
+            <section class="page" id="page-queue">
+                <div class="page-header">
+                    <div>
+                        <h2>Diagnostic Queue</h2>
+                        <p>Smart patient test routing and queue management.</p>
+                    </div>
+                    <div class="page-header-actions">
+                        <button class="btn btn-secondary" id="queueClearBtn">Clear All</button>
+                        <button class="btn btn-primary" id="queueComputeBtn">
+                            <svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/><path d="M3 21v-5h5"/></svg>
+                            Compute Queue
+                        </button>
+                    </div>
+                </div>
+
+                <div class="form-note" style="margin-top:0; margin-bottom:20px;">
+                    <svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                    <span>Frontend prototype. Patients are stored in browser memory only. Real patient data and C++ algorithm integration will follow in the next step.</span>
+                </div>
+
+                <div class="queue-grid">
+
+                    <!-- LEFT: Entry + Patient list -->
+                    <div>
+                        <div class="card">
+                            <div class="card-body">
+                                <div class="section-title" style="margin-bottom:14px;">Patient Test Entry</div>
+
+                                <div class="form-field" style="margin-bottom:14px;">
+                                    <label class="form-label" for="qPatientId">Patient ID</label>
+                                    <input class="form-input" id="qPatientId" type="text" placeholder="e.g. P001" autocomplete="off" />
+                                </div>
+
+                                <div class="form-field" style="margin-bottom:14px;">
+                                    <label class="form-label">Prescribed Tests</label>
+                                    <div class="test-picker" id="qTestPicker"><!-- JS --></div>
+                                </div>
+
+                                <button class="btn btn-primary" id="qAddPatientBtn" style="width:100%; justify-content:center;">
+                                    <svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                                    Add Patient to Queue
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="card" style="margin-top:20px;">
+                            <div class="card-body">
+                                <div class="section-head" style="margin-bottom:12px;">
+                                    <div class="section-title">Patients in Queue</div>
+                                    <span class="badge badge-grey" id="qPatientCount">0</span>
+                                </div>
+                                <div id="qPatientList" class="patient-list"><!-- JS --></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- RIGHT: Results -->
+                    <div>
+                        <div class="card" style="margin-bottom:20px;">
+                            <div class="card-body">
+                                <div class="section-title" style="margin-bottom:14px;">Testing Centres</div>
+                                <div class="centre-grid" id="qCentres"><!-- JS --></div>
+                            </div>
+                        </div>
+
+                        <div class="card" style="margin-bottom:20px;">
+                            <div class="card-body">
+                                <div class="section-title" style="margin-bottom:14px;">Queue Sequence per Patient</div>
+                                <div class="patient-list" id="qSequence"><!-- JS --></div>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-body">
+                                <div class="section-title" style="margin-bottom:14px;">Schedule Timeline</div>
+                                <div class="timeline" id="qTimeline"><!-- JS --></div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </section>
+
+            <!-- ====================================================
+                 PAGE: PATIENTS (unchanged)
                  ==================================================== -->
             <section class="page" id="page-patients">
                 <div class="page-header">
@@ -1209,7 +1398,7 @@ button { font-family: inherit; }
             </section>
 
             <!-- ====================================================
-                 PAGE: DOCTORS
+                 PAGE: DOCTORS (unchanged)
                  ==================================================== -->
             <section class="page" id="page-doctors">
                 <div class="page-header">
@@ -1259,7 +1448,7 @@ button { font-family: inherit; }
             </section>
 
             <!-- ====================================================
-                 PAGE: APPOINTMENTS
+                 PAGE: APPOINTMENTS (unchanged)
                  ==================================================== -->
             <section class="page" id="page-appointments">
                 <div class="page-header">
@@ -1347,7 +1536,7 @@ button { font-family: inherit; }
             </section>
 
             <!-- ====================================================
-                 PAGE: BILLING
+                 PAGE: BILLING (unchanged)
                  ==================================================== -->
             <section class="page" id="page-billing">
                 <div class="page-header">
@@ -1398,7 +1587,7 @@ button { font-family: inherit; }
             </section>
 
             <!-- ====================================================
-                 PAGE: REPORTS
+                 PAGE: REPORTS (unchanged)
                  ==================================================== -->
             <section class="page" id="page-reports">
                 <div class="page-header">
@@ -1462,7 +1651,7 @@ button { font-family: inherit; }
     'use strict';
 
     /* --------------------------------------------------------
-       Icon paths (Lucide-style, inner SVG markup only)
+       Icon paths
        -------------------------------------------------------- */
     const ICON_PATHS = {
         'users':        '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
@@ -1487,11 +1676,25 @@ button { font-family: inherit; }
     var state = {
         page: 'dashboard',
         health: null,
-        backendOnline: null,   // null = unknown, true, false
+        backendOnline: null,
         tests: [],
         testsLoading: false,
         testsError: null,
         testSearch: ''
+    };
+
+    /* Queue state */
+    var QUEUE_TESTS = {
+        A: { name: 'X-Ray',      duration: 10 },
+        B: { name: 'Blood Test', duration: 5  },
+        C: { name: 'Ultrasound', duration: 20 },
+        D: { name: 'CT Scan',    duration: 30 }
+    };
+
+    var queueState = {
+        patients: [],        // { id, tests: ['A','B'], addedAt: number }
+        lastResult: null,
+        pickerRendered: false
     };
 
     /* --------------------------------------------------------
@@ -1596,8 +1799,7 @@ button { font-family: inherit; }
         var el = document.getElementById('statsGrid');
         if (!el) return;
 
-        var testCount;
-        var testHint;
+        var testCount, testHint;
         if (state.testsLoading) {
             testCount = '…';
             testHint = '<span class="stat-hint">Loading…</span>';
@@ -1638,7 +1840,7 @@ button { font-family: inherit; }
     }
 
     /* --------------------------------------------------------
-       Tests
+       Tests page
        -------------------------------------------------------- */
     function loadTests() {
         state.testsLoading = true;
@@ -1699,7 +1901,6 @@ button { font-family: inherit; }
             el.innerHTML = '<div class="loading-state"><div class="spinner"></div>Loading medical tests...</div>';
             return;
         }
-
         if (state.testsError) {
             el.innerHTML =
                 '<div class="error-state">' +
@@ -1712,7 +1913,6 @@ button { font-family: inherit; }
             if (retry) retry.addEventListener('click', loadTests);
             return;
         }
-
         if (state.tests.length === 0) {
             el.innerHTML =
                 '<div class="empty-state">' +
@@ -1722,7 +1922,6 @@ button { font-family: inherit; }
                 '</div>';
             return;
         }
-
         var filtered = filterTests();
         if (filtered.length === 0) {
             el.innerHTML =
@@ -1733,7 +1932,6 @@ button { font-family: inherit; }
                 '</div>';
             return;
         }
-
         el.innerHTML = buildTestTable(filtered);
     }
 
@@ -1760,17 +1958,418 @@ button { font-family: inherit; }
         el.innerHTML = buildTestTable(state.tests);
     }
 
+    /* ========================================================
+       DIAGNOSTIC QUEUE
+       ======================================================== */
+
+    function renderQueueTestPicker() {
+        if (queueState.pickerRendered) return;
+        var el = document.getElementById('qTestPicker');
+        if (!el) return;
+
+        el.innerHTML = Object.keys(QUEUE_TESTS).map(function (id) {
+            var t = QUEUE_TESTS[id];
+            return (
+                '<label class="test-pick" data-test-id="' + id + '">' +
+                    '<input type="checkbox" value="' + id + '" />' +
+                    '<span class="test-id">' + id + '</span>' +
+                    '<span style="flex:1; font-weight:500;">' + escapeHtml(t.name) + '</span>' +
+                    '<span style="font-size:11.5px; color:var(--text-3);">' + t.duration + ' min</span>' +
+                '</label>'
+            );
+        }).join('');
+
+        // Toggle "checked" class on parent label
+        el.querySelectorAll('input[type="checkbox"]').forEach(function (cb) {
+            cb.addEventListener('change', function () {
+                var label = cb.closest('.test-pick');
+                if (label) label.classList.toggle('checked', cb.checked);
+            });
+        });
+
+        queueState.pickerRendered = true;
+    }
+
+    function renderQueuePatients() {
+        var listEl = document.getElementById('qPatientList');
+        var countEl = document.getElementById('qPatientCount');
+        if (!listEl) return;
+
+        if (countEl) countEl.textContent = String(queueState.patients.length);
+
+        if (queueState.patients.length === 0) {
+            listEl.innerHTML = '<div style="text-align:center; color:var(--text-3); font-size:12.5px; padding:14px 0;">No patients in queue. Add one above.</div>';
+            return;
+        }
+
+        listEl.innerHTML = queueState.patients.map(function (p) {
+            return (
+                '<div class="patient-card">' +
+                    '<div class="patient-head">' +
+                        '<span class="patient-id">' + escapeHtml(p.id) + '</span>' +
+                        '<button class="btn btn-ghost" data-remove-patient="' + escapeHtml(p.id) + '" ' +
+                            'style="color:var(--red); padding:2px 8px; font-size:12px;">Remove</button>' +
+                    '</div>' +
+                    '<div style="display:flex; gap:6px; flex-wrap:wrap;">' +
+                        p.tests.map(function (t) {
+                            return '<span class="badge badge-grey">' + t + ' · ' + escapeHtml(QUEUE_TESTS[t].name) + '</span>';
+                        }).join('') +
+                    '</div>' +
+                '</div>'
+            );
+        }).join('');
+    }
+
+    function renderQueueEmptyPanels() {
+        var centresEl = document.getElementById('qCentres');
+        var seqEl = document.getElementById('qSequence');
+        var tlEl = document.getElementById('qTimeline');
+
+        if (centresEl) {
+            centresEl.innerHTML = Object.keys(QUEUE_TESTS).map(function (id) {
+                var t = QUEUE_TESTS[id];
+                return (
+                    '<div class="centre-card">' +
+                        '<div class="centre-head">' +
+                            '<div>' +
+                                '<div class="centre-name">' + escapeHtml(t.name) + '</div>' +
+                                '<div class="centre-sub">Centre ' + id + '</div>' +
+                            '</div>' +
+                            '<span class="centre-test-tag">' + t.duration + ' min</span>' +
+                        '</div>' +
+                        '<div class="centre-body">Waiting for queue computation…</div>' +
+                    '</div>'
+                );
+            }).join('');
+        }
+        if (seqEl) {
+            seqEl.innerHTML = '<div style="text-align:center; color:var(--text-3); font-size:12.5px; padding:14px 0;">Compute the queue to see each patient’s test sequence.</div>';
+        }
+        if (tlEl) {
+            tlEl.innerHTML = '<div style="text-align:center; color:var(--text-3); font-size:12.5px; padding:14px 0;">No events yet.</div>';
+        }
+    }
+
+    function addPatientToQueue() {
+        var idInput = document.getElementById('qPatientId');
+        if (!idInput) return;
+        var id = idInput.value.trim();
+
+        if (!id) {
+            showToast('Patient ID is required.', 'warn');
+            return;
+        }
+        if (queueState.patients.some(function (p) { return p.id === id; })) {
+            showToast('Patient ID already in queue.', 'warn');
+            return;
+        }
+        var checks = document.querySelectorAll('#qTestPicker input[type="checkbox"]:checked');
+        var tests = Array.prototype.map.call(checks, function (c) { return c.value; });
+
+        if (tests.length === 0) {
+            showToast('Select at least one test.', 'warn');
+            return;
+        }
+
+        queueState.patients.push({
+            id: id,
+            tests: tests,
+            addedAt: queueState.patients.length
+        });
+
+        idInput.value = '';
+        Array.prototype.forEach.call(checks, function (c) {
+            c.checked = false;
+            var label = c.closest('.test-pick');
+            if (label) label.classList.remove('checked');
+        });
+
+        renderQueuePatients();
+
+        if (queueState.lastResult) {
+            computeQueue(false);  // silent recompute
+        } else {
+            renderQueueEmptyPanels();
+        }
+
+        showToast('Patient ' + id + ' added to queue.');
+    }
+
+    function removePatientFromQueue(patientId) {
+        queueState.patients = queueState.patients.filter(function (p) { return p.id !== patientId; });
+        // Re-index addedAt to keep ordering stable
+        queueState.patients.forEach(function (p, i) { p.addedAt = i; });
+
+        renderQueuePatients();
+
+        if (queueState.patients.length === 0) {
+            queueState.lastResult = null;
+            renderQueueEmptyPanels();
+        } else if (queueState.lastResult) {
+            computeQueue(false);
+        }
+    }
+
+    function clearQueue() {
+        queueState.patients = [];
+        queueState.lastResult = null;
+
+        var idInput = document.getElementById('qPatientId');
+        if (idInput) idInput.value = '';
+
+        var checks = document.querySelectorAll('#qTestPicker input[type="checkbox"]');
+        Array.prototype.forEach.call(checks, function (c) {
+            c.checked = false;
+            var label = c.closest('.test-pick');
+            if (label) label.classList.remove('checked');
+        });
+
+        renderQueuePatients();
+        renderQueueEmptyPanels();
+        showToast('Queue cleared.');
+    }
+
+    /**
+     * Smart diagnostic queue algorithm (client-side prototype).
+     *
+     * Report rules implemented:
+     *   1. First pass — distribute patients to available centres.
+     *   2. Queue for common tests forms only after each relevant centre
+     *      has received its first patient.
+     *   3. Priority = waiting minutes + test duration (longer waiting /
+     *      longer test = higher priority).
+     *   4. Recalculate after each test completes.
+     */
+    function computeQueue(showToastOnSuccess) {
+        if (queueState.patients.length === 0) {
+            showToast('Add at least one patient first.', 'warn');
+            return;
+        }
+
+        // Snapshot patient working copies
+        var patients = queueState.patients.map(function (p) {
+            return {
+                id: p.id,
+                remaining: p.tests.slice(),
+                done: [],
+                addedAt: p.addedAt
+            };
+        });
+
+        // Snapshot centres — one centre per test type
+        var centres = {};
+        Object.keys(QUEUE_TESTS).forEach(function (id) {
+            centres[id] = {
+                id: id,
+                name: QUEUE_TESTS[id].name,
+                duration: QUEUE_TESTS[id].duration,
+                current: null,
+                remainingMin: 0,
+                busyMinutes: 0
+            };
+        });
+
+        var events = [];
+        var perPatient = {};
+        patients.forEach(function (p) { perPatient[p.id] = []; });
+
+        var time = 0;
+        var MAX_TIME = 5000;
+
+        while (time < MAX_TIME) {
+            // 1) Process completions
+            Object.keys(centres).forEach(function (cid) {
+                var c = centres[cid];
+                if (c.current && c.remainingMin <= 0) {
+                    var p = patients.find(function (x) { return x.id === c.current; });
+                    if (p) {
+                        var idx = p.remaining.indexOf(cid);
+                        if (idx >= 0) p.remaining.splice(idx, 1);
+                        p.done.push(cid);
+                    }
+                    events.push({ time: time, type: 'complete', centre: cid, patient: c.current });
+                    c.current = null;
+                }
+            });
+
+            // All done?
+            var allDone = patients.every(function (p) { return p.remaining.length === 0; });
+            if (allDone) break;
+
+            // 2) Assign free centres (first-pass round-robin happens
+            //    naturally in the very first iteration).
+            var busyPatients = {};
+            Object.keys(centres).forEach(function (cid) {
+                if (centres[cid].current) busyPatients[centres[cid].current] = true;
+            });
+
+            Object.keys(centres).forEach(function (cid) {
+                var c = centres[cid];
+                if (c.current) return;
+
+                var eligible = patients.filter(function (p) {
+                    return p.remaining.indexOf(cid) !== -1 && !busyPatients[p.id];
+                });
+                if (eligible.length === 0) return;
+
+                // Priority: waiting minutes + test duration
+                eligible.sort(function (a, b) {
+                    var waitA = Math.max(0, time - a.addedAt);
+                    var waitB = Math.max(0, time - b.addedAt);
+                    var scoreA = waitA + c.duration;
+                    var scoreB = waitB + c.duration;
+                    return scoreB - scoreA;
+                });
+
+                var chosen = eligible[0];
+                c.current = chosen.id;
+                c.remainingMin = c.duration;
+                busyPatients[chosen.id] = true;
+
+                events.push({ time: time, type: 'start', centre: cid, patient: chosen.id });
+                perPatient[chosen.id].push({
+                    test: cid,
+                    startTime: time,
+                    duration: c.duration
+                });
+            });
+
+            // 3) Advance time
+            time += 1;
+            Object.keys(centres).forEach(function (cid) {
+                if (centres[cid].remainingMin > 0) {
+                    centres[cid].remainingMin -= 1;
+                    centres[cid].busyMinutes += 1;
+                }
+            });
+        }
+
+        queueState.lastResult = {
+            patients: patients,
+            centres: centres,
+            events: events,
+            perPatient: perPatient,
+            totalTime: time
+        };
+
+        renderQueueResult();
+
+        if (showToastOnSuccess !== false) {
+            showToast('Queue computed successfully.');
+        }
+    }
+
+    function renderQueueResult() {
+        var result = queueState.lastResult;
+        if (!result) {
+            renderQueueEmptyPanels();
+            return;
+        }
+
+        /* ---- Centres ---- */
+        var centresEl = document.getElementById('qCentres');
+        if (centresEl) {
+            centresEl.innerHTML = Object.keys(result.centres).map(function (cid) {
+                var c = result.centres[cid];
+                var completed = result.events.filter(function (e) {
+                    return e.centre === cid && e.type === 'complete';
+                }).length;
+                var util = result.totalTime > 0
+                    ? Math.round((c.busyMinutes / result.totalTime) * 100)
+                    : 0;
+
+                return (
+                    '<div class="centre-card">' +
+                        '<div class="centre-head">' +
+                            '<div>' +
+                                '<div class="centre-name">' + escapeHtml(c.name) + '</div>' +
+                                '<div class="centre-sub">Centre ' + cid + '</div>' +
+                            '</div>' +
+                            '<span class="centre-test-tag">' + c.duration + ' min</span>' +
+                        '</div>' +
+                        '<div class="centre-body">' +
+                            'Tests completed: <strong>' + completed + '</strong><br>' +
+                            'Utilization: <strong>' + util + '%</strong>' +
+                            '<div class="util-bar"><div class="util-fill" style="width:' + util + '%;"></div></div>' +
+                        '</div>' +
+                    '</div>'
+                );
+            }).join('');
+        }
+
+        /* ---- Per-patient sequence ---- */
+        var seqEl = document.getElementById('qSequence');
+        if (seqEl) {
+            seqEl.innerHTML = result.patients.map(function (p) {
+                var steps = result.perPatient[p.id] || [];
+                if (steps.length === 0) {
+                    return (
+                        '<div class="patient-card">' +
+                            '<div class="patient-head"><span class="patient-id">' + escapeHtml(p.id) + '</span></div>' +
+                            '<div style="font-size:12.5px; color:var(--text-3);">No tests assigned.</div>' +
+                        '</div>'
+                    );
+                }
+                return (
+                    '<div class="patient-card">' +
+                        '<div class="patient-head">' +
+                            '<span class="patient-id">' + escapeHtml(p.id) + '</span>' +
+                            '<span class="badge badge-green">' + steps.length + ' test' + (steps.length > 1 ? 's' : '') + '</span>' +
+                        '</div>' +
+                        '<div class="sequence-list">' +
+                            steps.map(function (s, i) {
+                                return (
+                                    '<div class="sequence-step">' +
+                                        '<span class="step-num">' + (i + 1) + '</span>' +
+                                        '<span class="step-test">' + s.test + ' · ' + escapeHtml(QUEUE_TESTS[s.test].name) + '</span>' +
+                                        '<span class="step-time">+ ' + s.startTime + ' min</span>' +
+                                    '</div>'
+                                );
+                            }).join('') +
+                        '</div>' +
+                    '</div>'
+                );
+            }).join('');
+        }
+
+        /* ---- Timeline ---- */
+        var tlEl = document.getElementById('qTimeline');
+        if (tlEl) {
+            if (result.events.length === 0) {
+                tlEl.innerHTML = '<div style="text-align:center; color:var(--text-3); font-size:12.5px; padding:14px 0;">No events.</div>';
+            } else {
+                tlEl.innerHTML = result.events.map(function (e) {
+                    var isStart = e.type === 'start';
+                    var color = isStart ? 'var(--primary)' : 'var(--green)';
+                    var label = isStart ? 'Start' : 'Complete';
+                    var icon = isStart ? '▶' : '✓';
+                    return (
+                        '<div class="timeline-row">' +
+                            '<span class="timeline-time">' + e.time + ' min</span>' +
+                            '<span class="timeline-event">' +
+                                '<strong style="color:' + color + ';">' + icon + ' ' + label + '</strong>' +
+                                ' · <strong>' + escapeHtml(e.patient) + '</strong>' +
+                                ' · ' + escapeHtml(QUEUE_TESTS[e.centre].name) + ' (' + e.centre + ')' +
+                            '</span>' +
+                        '</div>'
+                    );
+                }).join('');
+            }
+        }
+    }
+
     /* --------------------------------------------------------
        Navigation
        -------------------------------------------------------- */
     var PAGES = {
-        dashboard:    { title: 'Overview',       sub: 'Dashboard' },
-        patients:     { title: 'Patients',       sub: 'Patient records' },
-        doctors:      { title: 'Doctors',        sub: 'Medical staff' },
-        appointments: { title: 'Appointments',   sub: 'Scheduling' },
-        tests:        { title: 'Medical Tests',  sub: 'Diagnostic tests' },
-        billing:      { title: 'Billing',        sub: 'Invoices and payments' },
-        reports:      { title: 'Reports',        sub: 'Analytics' }
+        dashboard:    { title: 'Overview',         sub: 'Dashboard' },
+        patients:     { title: 'Patients',         sub: 'Patient records' },
+        doctors:      { title: 'Doctors',          sub: 'Medical staff' },
+        appointments: { title: 'Appointments',     sub: 'Scheduling' },
+        tests:        { title: 'Medical Tests',    sub: 'Diagnostic tests' },
+        queue:        { title: 'Diagnostic Queue', sub: 'Smart test routing' },
+        billing:      { title: 'Billing',          sub: 'Invoices and payments' },
+        reports:      { title: 'Reports',          sub: 'Analytics' }
     };
 
     function navigate(page) {
@@ -1807,6 +2406,16 @@ button { font-family: inherit; }
                 testsSearch.value = state.testSearch;
             }
         }
+
+        if (page === 'queue') {
+            renderQueueTestPicker();
+            renderQueuePatients();
+            if (queueState.lastResult) {
+                renderQueueResult();
+            } else {
+                renderQueueEmptyPanels();
+            }
+        }
     }
 
     /* --------------------------------------------------------
@@ -1839,7 +2448,7 @@ button { font-family: inherit; }
             document.getElementById('topbarDate').textContent = '';
         }
 
-        // Nav items
+        // Nav
         var navs = document.querySelectorAll('.nav-item');
         for (var i = 0; i < navs.length; i++) {
             navs[i].addEventListener('click', function () {
@@ -1847,7 +2456,6 @@ button { font-family: inherit; }
             });
         }
 
-        // Any element with data-goto navigates
         document.addEventListener('click', function (e) {
             var target = e.target.closest('[data-goto]');
             if (target) {
@@ -1855,7 +2463,7 @@ button { font-family: inherit; }
             }
         });
 
-        // Menu button + overlay
+        // Menu
         document.getElementById('menuBtn').addEventListener('click', openSidebar);
         document.getElementById('sidebarOverlay').addEventListener('click', closeSidebar);
 
@@ -1915,7 +2523,7 @@ button { font-family: inherit; }
             }
         });
 
-        // Save buttons (honest - no fake success)
+        // Save buttons (honest — no fake success)
         document.getElementById('savePatientBtn').addEventListener('click', function () {
             showToast('Patient registration is not connected yet. Backend API is required.', 'warn');
         });
@@ -1923,7 +2531,7 @@ button { font-family: inherit; }
             showToast('Appointment scheduling is not connected yet. Backend API is required.', 'warn');
         });
 
-        // Notifications button - informative
+        // Notifications button
         var notifBtn = document.querySelector('.icon-btn[aria-label="Notifications"]');
         if (notifBtn) {
             notifBtn.addEventListener('click', function () {
@@ -1931,14 +2539,43 @@ button { font-family: inherit; }
             });
         }
 
-        // Initial load
+        /* ----- Queue page wiring ----- */
+        var addBtn = document.getElementById('qAddPatientBtn');
+        if (addBtn) addBtn.addEventListener('click', addPatientToQueue);
+
+        var computeBtn = document.getElementById('queueComputeBtn');
+        if (computeBtn) computeBtn.addEventListener('click', function () { computeQueue(true); });
+
+        var clearBtn = document.getElementById('queueClearBtn');
+        if (clearBtn) clearBtn.addEventListener('click', clearQueue);
+
+        var patIdInput = document.getElementById('qPatientId');
+        if (patIdInput) {
+            patIdInput.addEventListener('keydown', function (e) {
+                if (e.key === 'Enter') addPatientToQueue();
+            });
+        }
+
+        document.addEventListener('click', function (e) {
+            var rem = e.target.closest('[data-remove-patient]');
+            if (rem) {
+                removePatientFromQueue(rem.getAttribute('data-remove-patient'));
+            }
+        });
+
+        // Render queue initial state
+        renderQueueTestPicker();
+        renderQueuePatients();
+        renderQueueEmptyPanels();
+
+        // Initial loads
         renderStats();
         renderTestsPage();
         renderDashboardTests();
         loadHealth();
         loadTests();
 
-        // Health polling every 20s
+        // Health polling
         setInterval(loadHealth, 20000);
     }
 
