@@ -12,8 +12,4 @@ COPY main.cpp .
 
 RUN g++ -std=c++17 -O2 -pthread main.cpp -o hospital
 
-ENV PORT=8080
-
-EXPOSE 8080
-
 CMD ["./hospital"]
