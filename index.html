@@ -269,7 +269,7 @@ button{font-family:inherit;}
   display:flex;align-items:center;justify-content:space-between;gap:12px;}
 .modal-title{font-size:16px;font-weight:700;}
 .modal-close{background:transparent;border:none;cursor:pointer;
-  color:var(--text-3);padding:4px;border-radius:6px;}
+  color:var(--text-3);padding:4px;border-radius:6px;font-size:20px;line-height:1;}
 .modal-close:hover{background:#F1F5F9;color:var(--text);}
 .modal-body{padding:24px;}
 .modal-desc{font-size:13px;color:var(--text-3);line-height:1.6;margin-bottom:16px;}
@@ -324,12 +324,17 @@ button{font-family:inherit;}
 .hospital-picker select{flex:1;min-width:200px}
 .hospital-pill{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:999px;background:var(--primary-soft);color:var(--primary);font-size:12px;font-weight:700}
 .active-indicator{display:inline-flex;align-items:center;gap:4px;font-size:11px;color:var(--green);font-weight:600}
+.summary-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-top:14px}
+.summary-item{padding:12px 14px;border-radius:10px;background:#F8FAFC;border:1px solid var(--border-2)}
+.summary-label{font-size:11px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:0.06em}
+.summary-value{font-size:20px;font-weight:700;margin-top:4px;color:var(--text)}
+.test-type-picker-wrap{border:1px solid var(--border);border-radius:10px;padding:10px;max-height:240px;overflow-y:auto;background:#fff}
+.custom-test-row{display:flex;gap:8px;align-items:center;margin-top:10px}
 </style>
 </head>
 <body>
 <div class="app">
 
-  <!-- SIDEBAR -->
   <aside class="sidebar" id="sidebar" aria-label="Main navigation">
     <div class="sidebar-brand">
       <div class="brand-mark">P</div>
@@ -377,7 +382,6 @@ button{font-family:inherit;}
 
   <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
-  <!-- MAIN -->
   <div class="main">
     <header class="topbar">
       <button class="icon-btn menu-btn" id="menuBtn" aria-label="Open menu" style="width:36px;height:36px;border-radius:10px;border:1px solid var(--border);background:#fff;display:inline-flex;align-items:center;justify-content:center;color:var(--text-2);cursor:pointer;">
@@ -399,7 +403,6 @@ button{font-family:inherit;}
 
     <main class="content">
 
-      <!-- OVERVIEW -->
       <section class="page active" id="page-overview">
         <div class="welcome">
           <div class="welcome-text">
@@ -448,7 +451,6 @@ button{font-family:inherit;}
         </div>
       </section>
 
-      <!-- PATIENT QUEUE -->
       <section class="page" id="page-queue">
         <div class="page-header">
           <div>
@@ -513,7 +515,6 @@ button{font-family:inherit;}
         </div>
       </section>
 
-      <!-- TESTING CENTRES -->
       <section class="page" id="page-centres">
         <div class="page-header">
           <div>
@@ -538,7 +539,6 @@ button{font-family:inherit;}
           </div>
         </div>
 
-        <!-- Active Hospital Selector -->
         <div class="card" id="hospitalSelectorCard" style="margin-bottom:16px;">
           <div class="card-body">
             <div class="hospital-picker">
@@ -552,10 +552,10 @@ button{font-family:inherit;}
             <div id="activeHospitalSummary" style="margin-top:12px;font-size:12.5px;color:var(--text-3);">
               Select or create a hospital to manage its data.
             </div>
+            <div id="activeHospitalStats" class="summary-grid"></div>
           </div>
         </div>
 
-        <!-- Hospital & Centre setup form -->
         <div class="card" id="hospitalSetupCard" style="display:none;margin-bottom:16px;">
           <div class="card-body">
             <div class="section-title" style="margin-bottom:6px;">Hospital & Testing Centre Setup</div>
@@ -563,8 +563,6 @@ button{font-family:inherit;}
             <form id="manualCentreForm">
               <div class="form-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;">
                 <label class="field-label">Centre name *<input class="input" id="cfgCentreName" required maxlength="100" placeholder="e.g. CT Scan Room"></label>
-                <label class="field-label">Test type *<select class="input" id="cfgTestType" required></select></label>
-                <label class="field-label" id="customTestWrap" style="display:none;">Custom test type *<input class="input" id="cfgCustomTest" maxlength="80" placeholder="Enter test type"></label>
                 <label class="field-label">Total machines *<input class="input" id="cfgMachines" type="number" min="1" max="500" value="1" required></label>
                 <label class="field-label">Active machines<input class="input" id="cfgActiveMachines" type="number" min="0" max="500" value="1"></label>
                 <label class="field-label">Machines under maintenance<input class="input" id="cfgMaintenance" type="number" min="0" max="500" value="0"></label>
@@ -578,6 +576,17 @@ button{font-family:inherit;}
                 <label class="field-label">Staff available<input class="input" id="cfgStaff" type="number" min="0" value="1"></label>
                 <label class="field-label">Queue priority<select class="input" id="cfgPriority"><option value="Normal">Normal</option><option value="High">High</option><option value="Urgent">Urgent</option></select></label>
               </div>
+
+              <!-- CHANGE 3: multi-select test types -->
+              <div class="field-label" style="margin-top:14px;">
+                <span>Test types supported by this centre *</span>
+                <div class="test-type-picker-wrap" id="cfgTestTypesList"></div>
+                <div class="custom-test-row">
+                  <input class="input" id="cfgCustomTest" maxlength="80" placeholder="Or type a new test name to add…" style="flex:1;">
+                  <button type="button" class="btn btn-secondary btn-sm" id="cfgAddCustomTestBtn">+ Add</button>
+                </div>
+              </div>
+
               <label class="field-label" style="display:block;margin-top:12px;">Notes<textarea class="input" id="cfgNotes" rows="2" maxlength="1000" placeholder="Optional notes…"></textarea></label>
               <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:16px;">
                 <button class="btn btn-primary" type="submit">Save to This Device</button>
@@ -587,7 +596,6 @@ button{font-family:inherit;}
           </div>
         </div>
 
-        <!-- Active hospital centres -->
         <div class="card" style="margin-bottom:16px;">
           <div class="card-body">
             <div class="section-title">Active Hospital Centres</div>
@@ -596,7 +604,6 @@ button{font-family:inherit;}
           </div>
         </div>
 
-        <!-- All hospitals -->
         <div class="card">
           <div class="card-body">
             <div style="display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:12px;">
@@ -615,7 +622,6 @@ button{font-family:inherit;}
         </div>
       </section>
 
-      <!-- QUEUE SCHEDULE -->
       <section class="page" id="page-schedule">
         <div class="page-header">
           <div>
@@ -662,7 +668,6 @@ button{font-family:inherit;}
   </div>
 </div>
 
-<!-- IMPORT MODAL -->
 <div class="modal-overlay" id="importModal" style="display:none;">
   <div class="modal">
     <div class="modal-header">
@@ -692,7 +697,6 @@ button{font-family:inherit;}
   </div>
 </div>
 
-<!-- MANAGE TEST TYPES MODAL -->
 <div class="modal-overlay" id="testTypesModal" style="display:none;">
   <div class="modal">
     <div class="modal-header">
@@ -730,7 +734,7 @@ button{font-family:inherit;}
   'use strict';
 
   /* ════════════════════════════════════════════════════════════
-     LOCAL STORAGE — hospitals, active hospital, patients, etc.
+     STORAGE KEYS + DATABASE
      ════════════════════════════════════════════════════════════ */
   var PRATIKSHA_STORAGE_KEY = "pratiksha_hospitals_v1";
   var PRATIKSHA_ACTIVE_HOSPITAL_KEY = "pratiksha_active_hospital_v1";
@@ -774,7 +778,7 @@ button{font-family:inherit;}
   }
 
   /* ════════════════════════════════════════════════════════════
-     DEFAULT TEST TYPES (for the "Add Centre" dropdown)
+     DEFAULT TEST TYPES (CHANGE 1)
      ════════════════════════════════════════════════════════════ */
   var DEFAULT_TEST_TYPES = [
     "Blood Test / Pathology","X-Ray","CT Scan","MRI","Ultrasound / USG",
@@ -822,7 +826,6 @@ button{font-family:inherit;}
   function getTestName(id) {
     for (var i = 0; i < state.tests.length; i++)
       if (state.tests[i].id === id) return state.tests[i].name;
-    // fallback: look in active hospital
     var h = getActiveHospital();
     if (h) {
       var t = h.tests.find(function (x) { return x.id === id; });
@@ -869,7 +872,7 @@ button{font-family:inherit;}
   }
 
   /* ════════════════════════════════════════════════════════════
-     API helpers (backend status probe only)
+     API helpers
      ════════════════════════════════════════════════════════════ */
   function apiGet(path) {
     return fetch(path, { cache: 'no-store' }).then(function (res) {
@@ -904,7 +907,8 @@ button{font-family:inherit;}
       settings: {
         openingTime: '09:00',
         closingTime: '17:00',
-        operatingDays: [1,2,3,4,5,6]
+        operatingDays: [1,2,3,4,5,6],
+        assignmentMode: autoMode ? 'auto' : 'manual'
       },
       tests: [],
       centres: [],
@@ -925,7 +929,7 @@ button{font-family:inherit;}
   }
 
   /* ════════════════════════════════════════════════════════════
-     TEST TYPE CRUD
+     TEST TYPE CRUD (CHANGE 2: reusable)
      ════════════════════════════════════════════════════════════ */
   function addTestType(hospitalId, testName, durationMinutes, bufferMinutes) {
     var db = getHospitalDatabase();
@@ -956,7 +960,6 @@ button{font-family:inherit;}
     var hospital = db.hospitals.find(function (h) { return h.id === hospitalId; });
     if (!hospital) return;
     hospital.tests = hospital.tests.filter(function (t) { return t.id !== testId; });
-    // also remove from centres
     hospital.centres.forEach(function (c) {
       if (Array.isArray(c.testIds)) c.testIds = c.testIds.filter(function (id) { return id !== testId; });
     });
@@ -964,31 +967,19 @@ button{font-family:inherit;}
   }
 
   /* ════════════════════════════════════════════════════════════
-     CENTRE CRUD (local)
+     CENTRE CRUD (CHANGE 3: accepts testIds array)
      ════════════════════════════════════════════════════════════ */
   function addCentreToLocalHospital(centreData) {
     return mutateActiveHospital(function (hospital) {
-      // find or create test
-      var testId = centreData.testId;
-      if (!testId && centreData.testName) {
-        var existing = hospital.tests.find(function (t) { return t.name.toLowerCase() === centreData.testName.toLowerCase(); });
-        if (existing) { testId = existing.id; }
-        else {
-          var newTest = {
-            id: makeId('T'),
-            name: centreData.testName,
-            durationMinutes: centreData.durationMinutes || 10,
-            bufferMinutes: centreData.bufferMinutes || 0,
-            enabled: true
-          };
-          hospital.tests.push(newTest);
-          testId = newTest.id;
-        }
-      }
+      var testIds = Array.isArray(centreData.testIds) ? centreData.testIds.slice() : [];
+      // Ensure all referenced test IDs exist in this hospital.
+      testIds = testIds.filter(function (tid) {
+        return hospital.tests.some(function (t) { return t.id === tid; });
+      });
       var centre = {
         id: makeId('C'),
         name: centreData.name || 'Centre',
-        testIds: testId ? [testId] : [],
+        testIds: testIds,
         totalMachines: centreData.totalMachines || 1,
         activeMachines: centreData.activeMachines || 1,
         maintenanceMachines: centreData.maintenanceMachines || 0,
@@ -1013,29 +1004,19 @@ button{font-family:inherit;}
     return mutateActiveHospital(function (hospital) {
       var c = hospital.centres.find(function (x) { return x.id === centreId; });
       if (!c) return null;
-      if (centreData.testName) {
-        var existing = hospital.tests.find(function (t) { return t.name.toLowerCase() === centreData.testName.toLowerCase(); });
-        if (existing) { c.testIds = [existing.id]; }
-        else {
-          var newTest = {
-            id: makeId('T'),
-            name: centreData.testName,
-            durationMinutes: centreData.durationMinutes || 10,
-            bufferMinutes: centreData.bufferMinutes || 0,
-            enabled: true
-          };
-          hospital.tests.push(newTest);
-          c.testIds = [newTest.id];
-        }
+      if (Array.isArray(centreData.testIds)) {
+        c.testIds = centreData.testIds.filter(function (tid) {
+          return hospital.tests.some(function (t) { return t.id === tid; });
+        });
       }
       c.name = centreData.name || c.name;
-      c.totalMachines = centreData.totalMachines != null ? centreData.totalMachines : c.totalMachines;
-      c.activeMachines = centreData.activeMachines != null ? centreData.activeMachines : c.activeMachines;
-      c.maintenanceMachines = centreData.maintenanceMachines != null ? centreData.maintenanceMachines : c.maintenanceMachines;
-      c.currentActiveTests = centreData.currentActiveTests != null ? centreData.currentActiveTests : c.currentActiveTests;
-      c.maxSimultaneousTests = centreData.maxSimultaneousTests != null ? centreData.maxSimultaneousTests : c.maxSimultaneousTests;
-      c.durationMinutes = centreData.durationMinutes != null ? centreData.durationMinutes : c.durationMinutes;
-      c.bufferMinutes = centreData.bufferMinutes != null ? centreData.bufferMinutes : c.bufferMinutes;
+      if (centreData.totalMachines != null) c.totalMachines = centreData.totalMachines;
+      if (centreData.activeMachines != null) c.activeMachines = centreData.activeMachines;
+      if (centreData.maintenanceMachines != null) c.maintenanceMachines = centreData.maintenanceMachines;
+      if (centreData.currentActiveTests != null) c.currentActiveTests = centreData.currentActiveTests;
+      if (centreData.maxSimultaneousTests != null) c.maxSimultaneousTests = centreData.maxSimultaneousTests;
+      if (centreData.durationMinutes != null) c.durationMinutes = centreData.durationMinutes;
+      if (centreData.bufferMinutes != null) c.bufferMinutes = centreData.bufferMinutes;
       c.status = centreData.status === 'Inactive' ? 'INACTIVE' : 'ACTIVE';
       c.enabled = c.status === 'ACTIVE';
       if (centreData.openingTime) c.openingTime = centreData.openingTime;
@@ -1093,21 +1074,39 @@ button{font-family:inherit;}
   }
 
   /* ════════════════════════════════════════════════════════════
-     LOCAL QUEUE CALCULATION (client-side fallback)
+     QUEUE CALCULATION (local fallback) — CHANGE 4 + 11
+     Uses currentActiveTests to seed machine occupancy and
+     prefers the test-record's duration over the centre's.
      ════════════════════════════════════════════════════════════ */
   function calculateQueueLocally(hospital) {
     if (!hospital) return null;
-    var centreSlots = {}; // centreId -> array of next available minutes
+    var centreSlots = {};
     var events = [];
     var perPatient = {};
     var maxTime = 0;
     var waitingTotal = 0;
+    var testsCompleted = 0;
+    var patientsCompleted = 0;
 
+    // Build test lookup
+    var testById = {};
+    hospital.tests.forEach(function (t) { testById[t.id] = t; });
+
+    // Initialise slot availability. CHANGE 4: currentActiveTests
+    // occupies slots with `durationMinutes` remaining.
     hospital.centres.forEach(function (c) {
       if (!c.enabled || c.status !== 'ACTIVE') return;
       var slots = Math.max(1, c.activeMachines || c.maxSimultaneousTests || 1);
-      centreSlots[c.id] = new Array(slots).fill(0);
+      var busyCount = Math.min(Math.max(0, Number(c.currentActiveTests) || 0), slots);
+      var initialOccupancy = Number(c.durationMinutes) || 10;
+      centreSlots[c.id] = [];
+      for (var i = 0; i < slots; i++) {
+        centreSlots[c.id].push(i < busyCount ? initialOccupancy : 0);
+      }
     });
+
+    // Tests with no matching centre -> record as unconfigured for UI
+    var unconfigured = [];
 
     hospital.patients.forEach(function (patient) {
       perPatient[patient.id] = [];
@@ -1115,33 +1114,47 @@ button{font-family:inherit;}
 
       patient.tests.forEach(function (testState) {
         if (testState.status === 'COMPLETED') return;
-        // find centre that handles this test
+
         var centre = null;
         for (var ci = 0; ci < hospital.centres.length; ci++) {
           var c = hospital.centres[ci];
           if (!c.enabled || c.status !== 'ACTIVE') continue;
           if (!Array.isArray(c.testIds)) continue;
           if (c.testIds.indexOf(testState.testId) === -1) continue;
+          if (!centreSlots[c.id]) continue;
           centre = c; break;
         }
-        if (!centre || !centreSlots[centre.id]) return;
+        if (!centre) {
+          unconfigured.push({
+            patientId: patient.id,
+            testId: testState.testId,
+            testName: testById[testState.testId] ? testById[testState.testId].name : testState.testId
+          });
+          return;
+        }
 
         var slots = centreSlots[centre.id];
-        var earliestSlot = 0;
+        var earliestSlot = slots[0];
         var earliestIdx = 0;
-        for (var s = 0; s < slots.length; s++) {
-          if (s === 0 || slots[s] < earliestSlot) { earliestSlot = slots[s]; earliestIdx = s; }
+        for (var s = 1; s < slots.length; s++) {
+          if (slots[s] < earliestSlot) { earliestSlot = slots[s]; earliestIdx = s; }
         }
         var startTime = Math.max(earliestSlot, patientAvail);
-        var dur = Number(centre.durationMinutes) || 10;
-        var buf = Number(centre.bufferMinutes) || 0;
+
+        // CHANGE 4: prefer test-record duration; fallback to centre
+        var testRec = testById[testState.testId];
+        var dur = testRec && testRec.durationMinutes > 0
+          ? Number(testRec.durationMinutes)
+          : (Number(centre.durationMinutes) || 10);
+        var buf = testRec && testRec.bufferMinutes >= 0
+          ? Number(testRec.bufferMinutes)
+          : (Number(centre.bufferMinutes) || 0);
+
         var endTime = startTime + dur;
         slots[earliestIdx] = endTime + buf;
         patientAvail = endTime;
 
-        var testName = '';
-        var t = hospital.tests.find(function (x) { return x.id === testState.testId; });
-        if (t) testName = t.name;
+        var testName = testRec ? testRec.name : testState.testId;
 
         events.push({
           type: 'start', time: startTime,
@@ -1163,10 +1176,14 @@ button{font-family:inherit;}
           endTime: endTime
         });
 
-        maxTime = Math.max(maxTime, endTime);
+        testsCompleted++;
+        if (endTime > maxTime) maxTime = endTime;
       });
 
-      waitingTotal += Math.max(0, patientAvail);
+      if (perPatient[patient.id].length > 0) {
+        waitingTotal += Math.max(0, patientAvail);
+        patientsCompleted++;
+      }
     });
 
     events.sort(function (a, b) {
@@ -1178,16 +1195,17 @@ button{font-family:inherit;}
       totalTime: maxTime,
       events: events,
       perPatient: perPatient,
+      unconfigured: unconfigured,
       metrics: {
-        testsCompleted: events.filter(function (e) { return e.type === 'complete'; }).length,
-        patientsCompleted: hospital.patients.length,
+        testsCompleted: testsCompleted,
+        patientsCompleted: patientsCompleted,
         sumWaitingTimes: waitingTotal
       }
     };
   }
 
   /* ════════════════════════════════════════════════════════════
-     STATE BUILDERS (local -> render state)
+     STATE BUILDERS
      ════════════════════════════════════════════════════════════ */
   function buildCentresState(hospital) {
     if (!hospital) return [];
@@ -1211,7 +1229,10 @@ button{font-family:inherit;}
         currentTestId = running.test.testId;
         var start = new Date(running.test.startedAt || now).getTime();
         elapsedSeconds = Math.max(0, Math.floor((now - start) / 1000));
-        var dur = (Number(c.durationMinutes) || 10) * 60;
+        // Prefer test-specific duration
+        var testRec = hospital.tests.find(function(t){ return t.id === running.test.testId; });
+        var durMin = testRec && testRec.durationMinutes > 0 ? testRec.durationMinutes : (c.durationMinutes || 10);
+        var dur = durMin * 60;
         remainingSeconds = Math.max(0, dur - elapsedSeconds);
       }
       var completedCount = 0;
@@ -1258,7 +1279,7 @@ button{font-family:inherit;}
   }
 
   /* ════════════════════════════════════════════════════════════
-     LOADERS (local mode)
+     LOADERS
      ════════════════════════════════════════════════════════════ */
   function loadHealth() {
     return apiGet('/api/health').then(function () {
@@ -1319,16 +1340,21 @@ button{font-family:inherit;}
     var payload = {
       hospital: {
         id: h.id,
+        name: h.name,
         tests: h.tests.map(function (t) {
-          return { id: t.id, name: t.name, durationMinutes: t.durationMinutes };
+          return { id: t.id, name: t.name, durationMinutes: t.durationMinutes, bufferMinutes: t.bufferMinutes };
         }),
         centres: h.centres.map(function (c) {
           return {
             id: c.id, name: c.name, testIds: c.testIds,
+            totalMachines: c.totalMachines,
             activeMachines: c.activeMachines || 1,
+            maintenanceMachines: c.maintenanceMachines || 0,
+            currentActiveTests: c.currentActiveTests || 0,
             maxSimultaneousTests: c.maxSimultaneousTests || 1,
             durationMinutes: c.durationMinutes || 10,
-            bufferMinutes: c.bufferMinutes || 0
+            bufferMinutes: c.bufferMinutes || 0,
+            status: c.status
           };
         }),
         patients: h.patients.map(function (p) {
@@ -1339,14 +1365,12 @@ button{font-family:inherit;}
         })
       }
     };
-    // Try stateless backend endpoint first; fallback to local calc
     return apiPost('/api/queue/calculate', payload).then(function (data) {
       state.queue = data;
       state.queueFetchedAt = Date.now();
       state.queueLoading = false;
       renderCurrentPage();
     }).catch(function () {
-      // graceful fallback
       state.queue = calculateQueueLocally(h);
       state.queueFetchedAt = Date.now();
       state.queueLoading = false;
@@ -1365,6 +1389,7 @@ button{font-family:inherit;}
   function renderHospitalSelector() {
     var select = document.getElementById('activeHospitalSelect');
     var summary = document.getElementById('activeHospitalSummary');
+    var stats = document.getElementById('activeHospitalStats');
     var deleteBtn = document.getElementById('deleteHospitalBtn');
     if (!select) return;
     var db = getHospitalDatabase();
@@ -1374,6 +1399,7 @@ button{font-family:inherit;}
         return '<option value="' + escapeHtml(h.id) + '"' + (h.id === activeId ? ' selected' : '') + '>' +
           escapeHtml(h.name) + '</option>';
       }).join('');
+
     var h = getActiveHospital();
     if (summary) {
       summary.innerHTML = h
@@ -1383,6 +1409,45 @@ button{font-family:inherit;}
           (h.location ? ' · ' + escapeHtml(h.location) : '')
         : 'Select or create a hospital to manage its data.';
     }
+
+    // CHANGE 9: per-hospital summary cards
+    if (stats) {
+      if (!h) {
+        stats.innerHTML = '';
+      } else {
+        var activeCentres = h.centres.filter(function(c) { return c.status === 'ACTIVE' && c.enabled; }).length;
+        var totalMachines = 0, activeMachines = 0, maintenanceMachines = 0;
+        h.centres.forEach(function(c) {
+          totalMachines += Number(c.totalMachines) || 0;
+          activeMachines += Number(c.activeMachines) || 0;
+          maintenanceMachines += Number(c.maintenanceMachines) || 0;
+        });
+        var busyMachines = 0;
+        h.patients.forEach(function(p) {
+          p.tests.forEach(function(t) { if (t.status === 'IN_PROGRESS') busyMachines++; });
+        });
+        var availableMachines = Math.max(0, activeMachines - busyMachines);
+        var waitingPatients = h.patients.filter(function(p) {
+          return p.tests.some(function(t) { return t.status === 'WAITING'; });
+        }).length;
+
+        function item(label, value) {
+          return '<div class="summary-item"><div class="summary-label">' + escapeHtml(label) + '</div>' +
+            '<div class="summary-value">' + escapeHtml(String(value)) + '</div></div>';
+        }
+        stats.innerHTML = [
+          item('Total Centres', h.centres.length),
+          item('Active Centres', activeCentres),
+          item('Total Machines', totalMachines),
+          item('Available Machines', availableMachines),
+          item('Busy Machines', busyMachines),
+          item('Maintenance', maintenanceMachines),
+          item('Test Types', h.tests.length),
+          item('Waiting Patients', waitingPatients)
+        ].join('');
+      }
+    }
+
     if (deleteBtn) deleteBtn.disabled = !h;
     var welcomeSub = document.getElementById('welcomeSub');
     if (welcomeSub) {
@@ -1397,12 +1462,18 @@ button{font-family:inherit;}
     if (!select) return;
     setActiveHospitalId(select.value);
     state.queue = null;
+    // CHANGE 10: load this hospital's assignment mode
+    var h = getActiveHospital();
+    if (h && h.settings && h.settings.assignmentMode) {
+      autoMode = h.settings.assignmentMode === 'auto';
+      updateAssignmentModeUI();
+    }
     renderHospitalSelector();
     refreshAll().then(renderCurrentPage);
   }
 
   /* ════════════════════════════════════════════════════════════
-     CREATE HOSPITAL (modal-less prompt-based, per instructions)
+     CREATE / DELETE HOSPITAL
      ════════════════════════════════════════════════════════════ */
   function handleCreateHospital() {
     var name = prompt('Enter hospital name:');
@@ -1427,7 +1498,7 @@ button{font-family:inherit;}
   }
 
   /* ════════════════════════════════════════════════════════════
-     PATIENT ACTIONS (local)
+     PATIENT ACTIONS
      ════════════════════════════════════════════════════════════ */
   function addPatient() {
     var h = getActiveHospital();
@@ -1477,45 +1548,45 @@ button{font-family:inherit;}
   }
 
   /* ════════════════════════════════════════════════════════════
-     ASSIGN / COMPLETE (local)
+     ASSIGN / COMPLETE
      ════════════════════════════════════════════════════════════ */
   function assignNext(centreId) {
     var h = getActiveHospital();
     if (!h) return;
-    var result = mutateActiveHospital(function (hospital) {
-      var centre = hospital.centres.find(function (c) { return c.id === centreId; });
-      if (!centre) throw new Error('Centre not found.');
-      // check available slots
-      var running = 0;
-      hospital.patients.forEach(function (p) {
-        p.tests.forEach(function (t) {
-          if (t.status === 'IN_PROGRESS' && t.centreId === centreId) running++;
+    var result;
+    try {
+      result = mutateActiveHospital(function (hospital) {
+        var centre = hospital.centres.find(function (c) { return c.id === centreId; });
+        if (!centre) throw new Error('Centre not found.');
+        var running = 0;
+        hospital.patients.forEach(function (p) {
+          p.tests.forEach(function (t) {
+            if (t.status === 'IN_PROGRESS' && t.centreId === centreId) running++;
+          });
         });
-      });
-      var capacity = Math.max(1, centre.activeMachines || 1);
-      if (running >= capacity) throw new Error('Centre is at full capacity.');
-      // find waiting patient
-      var found = null;
-      for (var pi = 0; pi < hospital.patients.length; pi++) {
-        var p = hospital.patients[pi];
-        var hasRunning = p.tests.some(function (t) { return t.status === 'IN_PROGRESS'; });
-        if (hasRunning) continue;
-        for (var ti = 0; ti < p.tests.length; ti++) {
-          var t = p.tests[ti];
-          if (t.status !== 'WAITING') continue;
-          if (!Array.isArray(centre.testIds)) continue;
-          if (centre.testIds.indexOf(t.testId) === -1) continue;
-          found = { patient: p, test: t };
-          break;
+        var capacity = Math.max(1, centre.activeMachines || 1);
+        if (running >= capacity) throw new Error('Centre is at full capacity.');
+        var found = null;
+        for (var pi = 0; pi < hospital.patients.length; pi++) {
+          var p = hospital.patients[pi];
+          if (p.tests.some(function (t) { return t.status === 'IN_PROGRESS'; })) continue;
+          for (var ti = 0; ti < p.tests.length; ti++) {
+            var t = p.tests[ti];
+            if (t.status !== 'WAITING') continue;
+            if (!Array.isArray(centre.testIds)) continue;
+            if (centre.testIds.indexOf(t.testId) === -1) continue;
+            found = { patient: p, test: t };
+            break;
+          }
+          if (found) break;
         }
-        if (found) break;
-      }
-      if (!found) throw new Error('No eligible waiting patient for this centre.');
-      found.test.status = 'IN_PROGRESS';
-      found.test.centreId = centreId;
-      found.test.startedAt = new Date().toISOString();
-      return found.patient.id;
-    });
+        if (!found) throw new Error('No eligible waiting patient for this centre.');
+        found.test.status = 'IN_PROGRESS';
+        found.test.centreId = centreId;
+        found.test.startedAt = new Date().toISOString();
+        return found.patient.id;
+      });
+    } catch (err) { showToast(err.message, 'error'); return; }
     if (result) {
       showToast('Assigned ' + result + ' to ' + centreId, 'success');
       refreshAll();
@@ -1525,26 +1596,29 @@ button{font-family:inherit;}
   function completeTest(centreId) {
     var h = getActiveHospital();
     if (!h) return;
-    var result = mutateActiveHospital(function (hospital) {
-      var centre = hospital.centres.find(function (c) { return c.id === centreId; });
-      if (!centre) throw new Error('Centre not found.');
-      var found = null;
-      for (var i = 0; i < hospital.patients.length; i++) {
-        var p = hospital.patients[i];
-        for (var j = 0; j < p.tests.length; j++) {
-          var t = p.tests[j];
-          if (t.status === 'IN_PROGRESS' && t.centreId === centreId) { found = { patient: p, test: t }; break; }
+    var result;
+    try {
+      result = mutateActiveHospital(function (hospital) {
+        var centre = hospital.centres.find(function (c) { return c.id === centreId; });
+        if (!centre) throw new Error('Centre not found.');
+        var found = null;
+        for (var i = 0; i < hospital.patients.length; i++) {
+          var p = hospital.patients[i];
+          for (var j = 0; j < p.tests.length; j++) {
+            var t = p.tests[j];
+            if (t.status === 'IN_PROGRESS' && t.centreId === centreId) { found = { patient: p, test: t }; break; }
+          }
+          if (found) break;
         }
-        if (found) break;
-      }
-      if (!found) throw new Error('Centre has no running test to complete.');
-      found.test.status = 'COMPLETED';
-      found.test.completedAt = new Date().toISOString();
-      if (found.patient.tests.every(function (t) { return t.status === 'COMPLETED'; })) {
-        found.patient.status = 'COMPLETED';
-      }
-      return found.patient.id;
-    });
+        if (!found) throw new Error('Centre has no running test to complete.');
+        found.test.status = 'COMPLETED';
+        found.test.completedAt = new Date().toISOString();
+        if (found.patient.tests.every(function (t) { return t.status === 'COMPLETED'; })) {
+          found.patient.status = 'COMPLETED';
+        }
+        return found.patient.id;
+      });
+    } catch (err) { showToast(err.message, 'error'); return; }
     if (result) {
       showToast('Test completed for ' + result, 'success');
       refreshAll();
@@ -1563,13 +1637,14 @@ button{font-family:inherit;}
     var changed = false;
 
     mutateActiveHospital(function (hospital) {
-      // 1. Complete elapsed tests
       hospital.patients.forEach(function (p) {
         p.tests.forEach(function (t) {
           if (t.status !== 'IN_PROGRESS' || !t.startedAt) return;
           var centre = hospital.centres.find(function (c) { return c.id === t.centreId; });
           if (!centre) return;
-          var dur = (Number(centre.durationMinutes) || 10) * 1000;
+          var testRec = hospital.tests.find(function(x){ return x.id === t.testId; });
+          var durMin = testRec && testRec.durationMinutes > 0 ? testRec.durationMinutes : (centre.durationMinutes || 10);
+          var dur = durMin * 60 * 1000;
           var elapsed = now - new Date(t.startedAt).getTime();
           if (elapsed >= dur) {
             t.status = 'COMPLETED';
@@ -1581,7 +1656,7 @@ button{font-family:inherit;}
           p.status = 'COMPLETED';
         }
       });
-      // 2. Assign to available centres
+
       hospital.centres.forEach(function (c) {
         if (!c.enabled || c.status !== 'ACTIVE') return;
         if (!Array.isArray(c.testIds) || !c.testIds.length) return;
@@ -1619,7 +1694,7 @@ button{font-family:inherit;}
   }
 
   /* ════════════════════════════════════════════════════════════
-     MODE CONTROLS
+     MODE CONTROLS (CHANGE 10: hospital-specific)
      ════════════════════════════════════════════════════════════ */
   function updateAssignmentModeUI() {
     var autoBtn = document.getElementById('autoModeBtn');
@@ -1629,6 +1704,12 @@ button{font-family:inherit;}
   }
   function setAssignmentMode(mode) {
     autoMode = mode === 'auto';
+    // Save to hospital-specific settings
+    mutateActiveHospital(function (hospital) {
+      if (!hospital.settings) hospital.settings = {};
+      hospital.settings.assignmentMode = autoMode ? 'auto' : 'manual';
+    });
+    // Also save to legacy key for backward compat
     localStorage.setItem(MODE_STORAGE_KEY, autoMode ? 'auto' : 'manual');
     updateAssignmentModeUI();
     showToast(autoMode ? 'Auto mode enabled.' : 'Manual mode enabled.', 'success');
@@ -1773,15 +1854,32 @@ button{font-family:inherit;}
     var countEl = document.getElementById('qPatientCount');
     if (!listEl) return;
     if (countEl) countEl.textContent = String(state.patients.length);
+    if (!getActiveHospital()) {
+      listEl.innerHTML = '<div class="empty-state" style="padding:24px 12px;">' +
+        '<div class="empty-title">No active hospital</div>' +
+        '<div class="empty-desc">Create or select a hospital to manage patients.</div></div>';
+      return;
+    }
     if (state.patients.length === 0) {
       listEl.innerHTML = '<div class="empty-state" style="padding:24px 12px;">' +
         '<div class="empty-title">No patients in queue</div>' +
         '<div class="empty-desc">Add a patient using the form.</div></div>';
       return;
     }
+    // CHANGE 11: surface unconfigured tests per patient
+    var unconfiguredByPatient = {};
+    if (state.queue && Array.isArray(state.queue.unconfigured)) {
+      state.queue.unconfigured.forEach(function (u) {
+        if (!unconfiguredByPatient[u.patientId]) unconfiguredByPatient[u.patientId] = [];
+        unconfiguredByPatient[u.patientId].push(u);
+      });
+    }
     listEl.innerHTML = state.patients.map(function (p) {
       var testsHtml = (p.tests || []).map(function (tid, i) {
-        return '<span class="badge badge-grey">' + (i + 1) + ' · ' + escapeHtml(getTestName(tid)) + '</span>';
+        var unconf = (unconfiguredByPatient[p.id] || []).some(function (u) { return u.testId === tid; });
+        var cls = unconf ? 'badge badge-red' : 'badge badge-grey';
+        var label = (i + 1) + ' · ' + getTestName(tid) + (unconf ? ' (no centre)' : '');
+        return '<span class="' + cls + '" title="' + (unconf ? 'No compatible testing centre configured' : '') + '">' + escapeHtml(label) + '</span>';
       }).join('');
       var statusBadge = '';
       if (p.currentCentre) statusBadge = '<span class="badge badge-blue">Testing</span>';
@@ -1828,6 +1926,7 @@ button{font-family:inherit;}
           '<span class="countdown-value" data-countdown="' + escapeHtml(c.id) + '">' + fmtSeconds(c.remainingSeconds || 0) + '</span></div>' +
           'Elapsed: <strong>' + fmtSeconds(c.elapsedSeconds || 0) + '</strong>';
       }
+      var testNamesList = (c.testIds || []).map(function (tid) { return getTestName(tid); }).join(', ') || '—';
       var actions = c.status === 'AVAILABLE'
         ? '<div class="centre-actions"><button class="btn btn-primary btn-sm" data-assign="' + escapeHtml(c.id) + '">Assign Next</button>' +
           '<button class="btn btn-secondary btn-sm" data-edit-centre="' + escapeHtml(c.id) + '">Edit</button>' +
@@ -1842,7 +1941,7 @@ button{font-family:inherit;}
       }
       return '<div class="' + cardCls + '"><div class="centre-head">' +
         '<div><div class="centre-name">' + escapeHtml(c.name) + '</div>' +
-        '<div class="centre-sub">' + (c.testIds.length ? escapeHtml(c.testIds.map(function(tid){ return getTestName(tid); }).join(', ')) : '—') + ' · ' + c.durationMinutes + ' min</div></div>' + badge + '</div>' +
+        '<div class="centre-sub">' + escapeHtml(testNamesList) + ' · ' + c.durationMinutes + ' min</div></div>' + badge + '</div>' +
         '<div class="centre-body">' + body + '</div>' + actions + '</div>';
     }).join('');
     container.querySelectorAll('[data-assign]').forEach(function (b) {
@@ -1885,26 +1984,42 @@ button{font-family:inherit;}
       container.innerHTML = '<div class="loading-state"><div class="spinner"></div>Computing schedule…</div>';
       return;
     }
+    // CHANGE 11: map unconfigured tests to patients
+    var unconfiguredByPatient = {};
+    (state.queue.unconfigured || []).forEach(function (u) {
+      if (!unconfiguredByPatient[u.patientId]) unconfiguredByPatient[u.patientId] = [];
+      unconfiguredByPatient[u.patientId].push(u);
+    });
     container.innerHTML = state.patients.map(function (p) {
       var steps = state.queue.perPatient[p.id] || [];
-      if (steps.length === 0) {
+      var unconf = unconfiguredByPatient[p.id] || [];
+      if (steps.length === 0 && unconf.length === 0) {
         return '<div class="patient-card"><div class="patient-head"><span class="patient-id">' + escapeHtml(p.id) + '</span></div>' +
           '<div style="font-size:12.5px;color:var(--text-3);">No tests scheduled.</div></div>';
       }
+      var unconfHtml = unconf.length
+        ? '<div style="margin-top:8px;padding:8px 10px;border-radius:8px;background:var(--red-soft);color:var(--red);font-size:12px;">' +
+          '<strong>⚠ No testing centre configured for:</strong> ' +
+          unconf.map(function (u) { return escapeHtml(u.testName); }).join(', ') +
+          '</div>'
+        : '';
       return '<div class="patient-card">' +
         '<div class="patient-head">' +
           '<div><span class="patient-id">' + escapeHtml(p.id) + '</span>' +
           (p.name ? '<span class="patient-name">' + escapeHtml(p.name) + '</span>' : '') + '</div>' +
-          '<span class="badge badge-green">' + steps.length + ' test' + (steps.length > 1 ? 's' : '') + '</span>' +
+          '<span class="badge badge-green">' + steps.length + ' test' + (steps.length === 1 ? '' : 's') + '</span>' +
         '</div>' +
-        '<div class="sequence-list">' + steps.map(function (s, i) {
-          return '<div class="sequence-step">' +
-            '<span class="step-num">' + (i + 1) + '</span>' +
-            '<span class="step-test">' + escapeHtml(s.testName || getTestName(s.testId)) + '</span>' +
-            '<span class="step-centre">· ' + escapeHtml(s.centreName || s.centreId) + '</span>' +
-            '<span class="step-time">+' + s.startTime + ' → +' + s.endTime + ' min</span>' +
-          '</div>';
-        }).join('') + '</div>' +
+        (steps.length
+          ? '<div class="sequence-list">' + steps.map(function (s, i) {
+              return '<div class="sequence-step">' +
+                '<span class="step-num">' + (i + 1) + '</span>' +
+                '<span class="step-test">' + escapeHtml(s.testName || getTestName(s.testId)) + '</span>' +
+                '<span class="step-centre">· ' + escapeHtml(s.centreName || s.centreId) + '</span>' +
+                '<span class="step-time">+' + s.startTime + ' → +' + s.endTime + ' min</span>' +
+              '</div>';
+            }).join('') + '</div>'
+          : '') +
+        unconfHtml +
       '</div>';
     }).join('');
   }
@@ -2041,47 +2156,80 @@ button{font-family:inherit;}
     });
   }
 
-  function renderManualCentreTestOptions() {
-    var sel = document.getElementById('cfgTestType');
-    if (!sel) return;
+  /* ════════════════════════════════════════════════════════════
+     MANUAL CENTRE TEST PICKER (CHANGE 1 + 2 + 3)
+     Combines DEFAULT_TEST_TYPES + hospital tests, dedupes by
+     name, and renders a multi-select list of checkboxes.
+     ════════════════════════════════════════════════════════════ */
+  function buildAllTestOptions() {
     var h = getActiveHospital();
-    var opts = ['<option value="">— Select —</option>'];
+    var seen = {};
+    var options = [];
+    // Defaults first
+    DEFAULT_TEST_TYPES.forEach(function (name) {
+      var key = name.toLowerCase();
+      if (seen[key]) return;
+      seen[key] = true;
+      var existing = h ? h.tests.find(function (t) { return t.name.toLowerCase() === key; }) : null;
+      options.push({
+        id: existing ? existing.id : null,
+        name: name,
+        durationMinutes: existing ? existing.durationMinutes : 10,
+        bufferMinutes: existing ? existing.bufferMinutes : 5,
+        exists: !!existing
+      });
+    });
+    // Hospital-specific custom tests
     if (h) {
       h.tests.forEach(function (t) {
-        opts.push('<option value="' + escapeHtml(t.id) + '">' + escapeHtml(t.name) + '</option>');
+        var key = t.name.toLowerCase();
+        if (seen[key]) return;
+        seen[key] = true;
+        options.push({
+          id: t.id,
+          name: t.name,
+          durationMinutes: t.durationMinutes,
+          bufferMinutes: t.bufferMinutes,
+          exists: true
+        });
       });
     }
-    opts.push('<option value="__new__">+ Add a new test type…</option>');
-    var prev = sel.value;
-    sel.innerHTML = opts.join('');
-    if (prev) sel.value = prev;
+    return options;
   }
 
-  function renderCentresPage() {
-    renderCentreCards(document.getElementById('centresContent'), false);
-    renderLocalHospitalSummary();
-    renderManualCentreTestOptions();
-  }
-  function renderOverviewPage() {
-    renderStats();
-    renderCentreCards(document.getElementById('overviewCentres'), true);
-    renderOverviewSchedule();
-  }
-  function renderQueuePage() { renderTestPicker(); renderPatientList(); }
-  function renderSchedulePage() {
-    renderScheduleSequence(document.getElementById('scheduleSequence'));
-    renderScheduleTimeline(document.getElementById('scheduleTimeline'));
-    renderLiveTimeline(document.getElementById('liveTimeline'));
-  }
-  function renderCurrentPage() {
-    if (state.page === 'overview') renderOverviewPage();
-    else if (state.page === 'queue') renderQueuePage();
-    else if (state.page === 'centres') renderCentresPage();
-    else if (state.page === 'schedule') renderSchedulePage();
+  function renderManualCentreTestOptions() {
+    var container = document.getElementById('cfgTestTypesList');
+    if (!container) return;
+    var options = buildAllTestOptions();
+    // Preserve current selections
+    var selectedValues = [];
+    container.querySelectorAll('input[type="checkbox"]:checked').forEach(function (cb) {
+      selectedValues.push(cb.value);
+    });
+    if (options.length === 0) {
+      container.innerHTML = '<div class="empty-state" style="padding:12px;"><div class="empty-desc">Select a hospital first.</div></div>';
+      return;
+    }
+    container.innerHTML = options.map(function (o, i) {
+      var value = o.exists ? o.id : ('__name:' + o.name);
+      var checked = selectedValues.indexOf(value) !== -1;
+      return '<label class="test-pick' + (checked ? ' checked' : '') + '">' +
+        '<input type="checkbox" value="' + escapeHtml(value) + '" data-name="' + escapeHtml(o.name) + '"' + (checked ? ' checked' : '') + '>' +
+        '<span class="test-id">' + (i + 1) + '</span>' +
+        '<span style="flex:1;font-weight:500;">' + escapeHtml(o.name) + '</span>' +
+        '<span style="font-size:11.5px;color:var(--text-3);">' + o.durationMinutes + ' min</span>' +
+      '</label>';
+    }).join('');
+    container.querySelectorAll('input[type="checkbox"]').forEach(function (cb) {
+      cb.addEventListener('change', function () {
+        var lbl = cb.closest('.test-pick');
+        if (lbl) lbl.classList.toggle('checked', cb.checked);
+      });
+    });
   }
 
   /* ════════════════════════════════════════════════════════════
-     MANUAL CENTRE FORM
+     MANUAL CENTRE FORM (CHANGE 2 + 3)
      ════════════════════════════════════════════════════════════ */
   function openManualCentre(item) {
     var card = document.getElementById('hospitalSetupCard');
@@ -2111,12 +2259,23 @@ button{font-family:inherit;}
     $('cfgStaff').value = values.staffAvailable || 0;
     $('cfgPriority').value = values.priority || 'Normal';
     $('cfgNotes').value = values.notes || '';
-    // select test id
+    $('cfgCustomTest').value = '';
+
+    // Render checkbox list and preselect
     renderManualCentreTestOptions();
-    if (values.testIds && values.testIds.length) {
-      $('cfgTestType').value = values.testIds[0];
-    }
-    document.getElementById('customTestWrap').style.display = 'none';
+    var container = $('cfgTestTypesList');
+    container.querySelectorAll('input[type="checkbox"]').forEach(function (cb) {
+      var val = cb.value;
+      var isSelected = false;
+      if (values.testIds && values.testIds.length) {
+        if (val.indexOf('__name:') === 0) return; // defaults w/o record can't be preselected by ID
+        if (values.testIds.indexOf(val) !== -1) isSelected = true;
+      }
+      cb.checked = isSelected;
+      var lbl = cb.closest('.test-pick');
+      if (lbl) lbl.classList.toggle('checked', isSelected);
+    });
+
     card.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
@@ -2125,25 +2284,62 @@ button{font-family:inherit;}
     var h = getActiveHospital();
     if (!h) { alert('Select or create a hospital first.'); return; }
     var $ = function (id) { return document.getElementById(id); };
-    var testSel = $('cfgTestType').value;
-    var customName = $('cfgCustomTest').value.trim();
     var total = Number($('cfgMachines').value);
     var active = Number($('cfgActiveMachines').value);
     var maintenance = Number($('cfgMaintenance').value);
-    if (testSel === '__new__' && !customName) { alert('Please enter the custom test type.'); return; }
     if (active > total) { alert('Active machines cannot exceed total machines.'); return; }
     if (maintenance > total) { alert('Maintenance machines cannot exceed total machines.'); return; }
     if (active + maintenance > total) { alert('Active + maintenance cannot exceed total machines.'); return; }
     if (Number($('cfgMaxSimultaneous').value) < 1) { alert('Capacity must be at least 1.'); return; }
+    if (Number($('cfgActiveTests').value) < 0) { alert('Active tests cannot be negative.'); return; }
+
+    var centreName = $('cfgCentreName').value.trim();
+    if (!centreName) { alert('Centre name is required.'); return; }
+
+    // Collect selected test types
+    var selected = [];
+    document.querySelectorAll('#cfgTestTypesList input[type="checkbox"]:checked').forEach(function (cb) {
+      selected.push({ value: cb.value, name: cb.getAttribute('data-name') });
+    });
+    if (selected.length === 0) { alert('Select at least one test type.'); return; }
+
+    var primaryDuration = Number($('cfgDuration').value) || 15;
+    var primaryBuffer = Number($('cfgBuffer').value) || 5;
+    var testIds = [];
+
+    // Resolve to test IDs; create test records for defaults not yet in hospital
+    for (var i = 0; i < selected.length; i++) {
+      var sel = selected[i];
+      var resolvedId = null;
+      if (sel.value.indexOf('__name:') === 0) {
+        // Default name not yet a test record — create it
+        try {
+          var newTest = addTestType(h.id, sel.name, primaryDuration, primaryBuffer);
+          resolvedId = newTest.id;
+        } catch (err) {
+          // If it already exists (race), find it
+          var found = h.tests.find(function (t) { return t.name.toLowerCase() === sel.name.toLowerCase(); });
+          if (found) resolvedId = found.id;
+          else { alert('Could not add test "' + sel.name + '": ' + err.message); return; }
+        }
+      } else {
+        resolvedId = sel.value;
+      }
+      if (resolvedId) testIds.push(resolvedId);
+    }
+
+    if (testIds.length === 0) { alert('No valid test types resolved.'); return; }
+
     var centreData = {
-      name: $('cfgCentreName').value.trim(),
-      testId: testSel !== '__new__' && testSel !== '' ? testSel : null,
-      testName: testSel === '__new__' ? customName : null,
-      totalMachines: total, activeMachines: active, maintenanceMachines: maintenance,
+      name: centreName,
+      testIds: testIds,
+      totalMachines: total,
+      activeMachines: active,
+      maintenanceMachines: maintenance,
       currentActiveTests: Number($('cfgActiveTests').value),
       maxSimultaneousTests: Number($('cfgMaxSimultaneous').value),
-      durationMinutes: Number($('cfgDuration').value),
-      bufferMinutes: Number($('cfgBuffer').value),
+      durationMinutes: primaryDuration,
+      bufferMinutes: primaryBuffer,
       status: $('cfgStatus').value,
       openingTime: $('cfgStart').value,
       closingTime: $('cfgEnd').value,
@@ -2151,7 +2347,7 @@ button{font-family:inherit;}
       priority: $('cfgPriority').value,
       notes: $('cfgNotes').value.trim()
     };
-    if (!centreData.name) { alert('Centre name is required.'); return; }
+
     var editId = e.currentTarget.dataset.editId;
     if (editId) {
       updateCentreInLocalHospital(editId, centreData);
@@ -2216,7 +2412,7 @@ button{font-family:inherit;}
   }
 
   /* ════════════════════════════════════════════════════════════
-     IMPORT / EXPORT
+     IMPORT / EXPORT (CHANGE 7: stricter validation)
      ════════════════════════════════════════════════════════════ */
   function openImportModal() {
     if (!getActiveHospital()) { showToast('Select or create a hospital first.', 'warn'); return; }
@@ -2256,7 +2452,8 @@ button{font-family:inherit;}
               return {
                 id: r.id || r.ID || '',
                 name: r.name || r.Name || '',
-                durationMinutes: Number(r.durationMinutes || r.DurationMinutes || r.Duration || 0)
+                durationMinutes: Number(r.durationMinutes || r.DurationMinutes || r.Duration || 0),
+                bufferMinutes: Number(r.bufferMinutes || r.BufferMinutes || r.Buffer || 0)
               };
             }),
             centres: centresJson.map(function (r) {
@@ -2271,14 +2468,44 @@ button{font-family:inherit;}
             })
           };
         } else { showToast('Unsupported file type.', 'error'); return; }
-        if (!config.tests || !config.centres) { showToast('File must contain "tests" and "centres" arrays.', 'error'); return; }
+
+        // Basic shape validation (before applying)
+        if (!Array.isArray(config.tests) || !Array.isArray(config.centres)) {
+          showToast('File must contain "tests" and "centres" arrays.', 'error'); return;
+        }
+        if (config.tests.length === 0) { showToast('At least one test is required.', 'error'); return; }
+        if (config.centres.length === 0) { showToast('At least one centre is required.', 'error'); return; }
+
+        // Collect IDs and validate
+        var testIds = {};
+        var errors = [];
+        config.tests.forEach(function (t, i) {
+          if (!t.name) errors.push('Test #' + (i+1) + ': name is required');
+          if (!t.durationMinutes || t.durationMinutes <= 0) errors.push('Test "' + (t.name||'#'+(i+1)) + '": duration must be > 0');
+          if (t.bufferMinutes < 0) errors.push('Test "' + (t.name||'#'+(i+1)) + '": buffer cannot be negative');
+          if (t.id) {
+            if (testIds[t.id]) errors.push('Duplicate test ID: ' + t.id);
+            testIds[t.id] = true;
+          }
+        });
+        config.centres.forEach(function (c, i) {
+          if (!c.name) errors.push('Centre #' + (i+1) + ': name is required');
+          if (c.durationMinutes != null && c.durationMinutes <= 0) errors.push('Centre "' + (c.name||'#'+(i+1)) + '": duration must be > 0');
+          if (c.machineCount != null && c.machineCount < 1) errors.push('Centre "' + (c.name||'#'+(i+1)) + '": machine count must be >= 1');
+        });
+        if (errors.length) {
+          showToast('Import errors: ' + errors.slice(0, 3).join('; ') + (errors.length > 3 ? '…' : ''), 'error');
+          return;
+        }
+
         pendingImportConfig = config;
         var preview = document.getElementById('importPreview');
         var body = document.getElementById('importPreviewBody');
         if (preview && body) {
           body.innerHTML = '<div>• <strong>' + config.tests.length + '</strong> tests</div>' +
             '<div>• <strong>' + config.centres.length + '</strong> centres</div>' +
-            '<div style="margin-top:6px;">Tests: ' + escapeHtml(config.tests.map(function (t) { return t.name; }).join(', ')) + '</div>';
+            '<div style="margin-top:6px;">Tests: ' + escapeHtml(config.tests.map(function (t) { return t.name; }).join(', ')) + '</div>' +
+            (testIds ? '<div style="margin-top:4px;font-size:11px;color:var(--text-4);">Note: centres referencing tests by name will be matched case-insensitively.</div>' : '');
           preview.style.display = 'block';
         }
         document.getElementById('importApplyBtn').disabled = false;
@@ -2290,6 +2517,7 @@ button{font-family:inherit;}
     if (ext === 'json') reader.readAsText(file);
     else reader.readAsArrayBuffer(file);
   }
+
   function applyImport() {
     if (!pendingImportConfig) return;
     var h = getActiveHospital();
@@ -2302,13 +2530,15 @@ button{font-family:inherit;}
         pendingImportConfig.tests.forEach(function (t) {
           if (!t.name) return;
           var existing = hospital.tests.find(function (x) { return x.name.toLowerCase() === t.name.toLowerCase(); });
-          if (existing) { existing.durationMinutes = t.durationMinutes || existing.durationMinutes; }
-          else {
+          if (existing) {
+            if (t.durationMinutes > 0) existing.durationMinutes = t.durationMinutes;
+            if (t.bufferMinutes >= 0) existing.bufferMinutes = t.bufferMinutes;
+          } else {
             hospital.tests.push({
               id: t.id || makeId('T'),
               name: t.name,
               durationMinutes: t.durationMinutes || 10,
-              bufferMinutes: 0,
+              bufferMinutes: t.bufferMinutes || 0,
               enabled: true
             });
           }
@@ -2316,7 +2546,10 @@ button{font-family:inherit;}
         // Add centres
         pendingImportConfig.centres.forEach(function (c) {
           if (!c.name) return;
-          var matchingTest = hospital.tests.find(function (t) { return t.name.toLowerCase() === (c.testId || c.name || '').toLowerCase(); });
+          // Match existing test by name or by id
+          var matchingTest = hospital.tests.find(function (t) {
+            return t.id === c.testId || t.name.toLowerCase() === (c.testId || '').toLowerCase();
+          });
           var centre = {
             id: c.id || makeId('C'),
             name: c.name,
@@ -2350,8 +2583,8 @@ button{font-family:inherit;}
   function downloadJsonTemplate() {
     var tpl = {
       tests: [
-        { id: 'T-XRAY', name: 'X-Ray', durationMinutes: 10 },
-        { id: 'T-BLOOD', name: 'Blood Test', durationMinutes: 5 }
+        { id: 'T-XRAY', name: 'X-Ray', durationMinutes: 10, bufferMinutes: 5 },
+        { id: 'T-BLOOD', name: 'Blood Test', durationMinutes: 5, bufferMinutes: 3 }
       ],
       centres: [
         { id: 'C-XR', name: 'X-Ray Room', testId: 'X-Ray', machineCount: 1, durationMinutes: 10, enabled: true },
@@ -2364,7 +2597,7 @@ button{font-family:inherit;}
   function downloadExcelTemplate() {
     if (typeof XLSX === 'undefined') { showToast('Excel library not loaded.', 'error'); return; }
     var wb = XLSX.utils.book_new();
-    var testsRows = [['id','name','durationMinutes'],['T-XRAY','X-Ray',10],['T-BLOOD','Blood Test',5]];
+    var testsRows = [['id','name','durationMinutes','bufferMinutes'],['T-XRAY','X-Ray',10,5],['T-BLOOD','Blood Test',5,3]];
     var centresRows = [['id','name','testId','machineCount','durationMinutes','enabled'],['C-XR','X-Ray Room','X-Ray',1,10,true],['C-BL','Blood Lab','Blood Test',1,5,true]];
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(testsRows), 'Tests');
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(centresRows), 'Centres');
@@ -2427,6 +2660,32 @@ button{font-family:inherit;}
   }
 
   /* ════════════════════════════════════════════════════════════
+     PAGE RENDERERS
+     ════════════════════════════════════════════════════════════ */
+  function renderCentresPage() {
+    renderCentreCards(document.getElementById('centresContent'), false);
+    renderLocalHospitalSummary();
+    renderManualCentreTestOptions();
+  }
+  function renderOverviewPage() {
+    renderStats();
+    renderCentreCards(document.getElementById('overviewCentres'), true);
+    renderOverviewSchedule();
+  }
+  function renderQueuePage() { renderTestPicker(); renderPatientList(); }
+  function renderSchedulePage() {
+    renderScheduleSequence(document.getElementById('scheduleSequence'));
+    renderScheduleTimeline(document.getElementById('scheduleTimeline'));
+    renderLiveTimeline(document.getElementById('liveTimeline'));
+  }
+  function renderCurrentPage() {
+    if (state.page === 'overview') renderOverviewPage();
+    else if (state.page === 'queue') renderQueuePage();
+    else if (state.page === 'centres') renderCentresPage();
+    else if (state.page === 'schedule') renderSchedulePage();
+  }
+
+  /* ════════════════════════════════════════════════════════════
      INIT
      ════════════════════════════════════════════════════════════ */
   function init() {
@@ -2458,10 +2717,30 @@ button{font-family:inherit;}
     var manualBtn = document.getElementById('manualCentreBtn'); if (manualBtn) manualBtn.addEventListener('click', function () { openManualCentre(null); });
     var manualForm = document.getElementById('manualCentreForm'); if (manualForm) manualForm.addEventListener('submit', submitManualCentre);
     var cancelManual = document.getElementById('cancelManualCentre'); if (cancelManual) cancelManual.addEventListener('click', function () { document.getElementById('hospitalSetupCard').style.display = 'none'; });
-    var testTypeSelect = document.getElementById('cfgTestType');
-    if (testTypeSelect) testTypeSelect.addEventListener('change', function () {
-      document.getElementById('customTestWrap').style.display = this.value === '__new__' ? 'flex' : 'none';
+
+    // CHANGE 2: quick custom test add from form
+    var cfgAddCustomTestBtn = document.getElementById('cfgAddCustomTestBtn');
+    if (cfgAddCustomTestBtn) cfgAddCustomTestBtn.addEventListener('click', function () {
+      var h = getActiveHospital();
+      if (!h) { showToast('Select a hospital first.', 'warn'); return; }
+      var customName = document.getElementById('cfgCustomTest').value.trim();
+      if (!customName) { showToast('Enter a test name first.', 'warn'); return; }
+      var dur = Number(document.getElementById('cfgDuration').value) || 10;
+      var buf = Number(document.getElementById('cfgBuffer').value) || 0;
+      try {
+        var newTest = addTestType(h.id, customName, dur, buf);
+        showToast('Test type "' + newTest.name + '" added.', 'success');
+        document.getElementById('cfgCustomTest').value = '';
+        renderManualCentreTestOptions();
+        // Auto-check the new test
+        var container = document.getElementById('cfgTestTypesList');
+        var cb = container.querySelector('input[value="' + newTest.id + '"]');
+        if (cb) { cb.checked = true; var lbl = cb.closest('.test-pick'); if (lbl) lbl.classList.add('checked'); }
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
     });
+
     var machinesInput = document.getElementById('cfgMachines');
     if (machinesInput) machinesInput.addEventListener('change', function () {
       var max = Math.max(1, Number(this.value) || 1);
