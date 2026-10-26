@@ -361,6 +361,14 @@ button{font-family:inherit;}
   .welcome-actions{width:100%;}
   .welcome-actions .btn{width:100%;justify-content:center;}
 }
+
+.field-label{display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:600;color:var(--text-2)}
+.field-label .input{width:100%;box-sizing:border-box;border:1px solid var(--border);border-radius:10px;padding:10px 11px;background:var(--surface,#fff);color:var(--text,#111827);font:inherit;font-size:13px;min-height:40px}
+.local-hospital-card{border:1px solid var(--border);border-radius:12px;padding:14px;background:var(--surface,#fff);min-width:0}
+.local-hospital-card h3{font-size:14px;margin:0 0 5px;color:var(--text,#111827)}
+.local-hospital-meta{font-size:12px;line-height:1.7;color:var(--text-3)}
+.local-card-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:12px}
+@media(max-width:520px){#manualCentreForm .form-grid{grid-template-columns:1fr!important}}
 </style>
 </head>
 <body>
@@ -564,6 +572,7 @@ button{font-family:inherit;}
             <p>Live status, workload and utilization for each diagnostic centre.</p>
           </div>
           <div class="page-header-actions">
+            <button class="btn btn-primary" id="manualCentreBtn" type="button">+ Add Centre Manually</button>
             <button class="btn btn-secondary" id="centresImportBtn">
               <svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
               Import Hospital Data
@@ -592,10 +601,49 @@ button{font-family:inherit;}
           </div>
         </div>
 
-        <div class="card">
+        <div class="card" id="hospitalSetupCard" style="display:none;margin-bottom:16px;">
           <div class="card-body">
-            <div id="centresContent" class="centre-grid"><!-- JS --></div>
+            <div class="section-title" style="margin-bottom:6px;">Hospital & Testing Centre Setup</div>
+            <p style="color:var(--text-3);font-size:13px;margin:0 0 16px;">Configuration is saved only in this browser on this device. It is not uploaded to the PRATIKSHA backend.</p>
+            <form id="manualCentreForm">
+              <div class="form-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;">
+                <label class="field-label">Hospital name *<input class="input" id="cfgHospital" required maxlength="100" placeholder="e.g. City Care Hospital"></label>
+                <label class="field-label">Hospital ID<input class="input" id="cfgHospitalId" placeholder="Auto-generated if blank"></label>
+                <label class="field-label">City / Location<input class="input" id="cfgCity" placeholder="City, state"></label>
+                <label class="field-label">Centre name *<input class="input" id="cfgCentreName" required maxlength="100" placeholder="e.g. CT Scan Room"></label>
+                <label class="field-label">Test type *<select class="input" id="cfgTestType" required>
+                  <option value="Blood Test / Pathology">Blood Test / Pathology</option><option value="X-Ray">X-Ray</option><option value="CT Scan">CT Scan</option><option value="MRI">MRI</option><option value="Ultrasound / USG">Ultrasound / USG</option><option value="ECG">ECG</option><option value="Echocardiography (Echo)">Echocardiography (Echo)</option><option value="TMT / Stress Test">TMT / Stress Test</option><option value="Mammography">Mammography</option><option value="PET Scan">PET Scan</option><option value="Endoscopy">Endoscopy</option><option value="EEG">EEG</option><option value="EMG / Nerve Conduction">EMG / Nerve Conduction</option><option value="Pulmonary Function Test (PFT)">Pulmonary Function Test (PFT)</option><option value="Bone Densitometry (DEXA)">Bone Densitometry (DEXA)</option><option value="Urine / Other Laboratory Test">Urine / Other Laboratory Test</option><option value="__custom__">＋ Add a custom test type…</option>
+                </select></label>
+                <label class="field-label" id="customTestWrap" style="display:none;">Custom test type *<input class="input" id="cfgCustomTest" maxlength="80" placeholder="Enter test type"></label>
+                <label class="field-label">Total machines *<input class="input" id="cfgMachines" type="number" min="1" max="500" value="1" required></label>
+                <label class="field-label">Active machines<input class="input" id="cfgActiveMachines" type="number" min="0" max="500" value="1"></label>
+                <label class="field-label">Machines under maintenance<input class="input" id="cfgMaintenance" type="number" min="0" max="500" value="0"></label>
+                <label class="field-label">Tests active right now<input class="input" id="cfgActiveTests" type="number" min="0" value="0"></label>
+                <label class="field-label">Maximum simultaneous tests<input class="input" id="cfgMaxSimultaneous" type="number" min="1" value="1" required></label>
+                <label class="field-label">Average test time (minutes) *<input class="input" id="cfgDuration" type="number" min="1" max="1440" value="15" required></label>
+                <label class="field-label">Cleaning / buffer time (minutes)<input class="input" id="cfgBuffer" type="number" min="0" max="240" value="5"></label>
+                <label class="field-label">Centre status<select class="input" id="cfgStatus"><option>Active</option><option>Inactive</option><option>Temporarily unavailable</option></select></label>
+                <label class="field-label">Working hours start<input class="input" id="cfgStart" type="time" value="09:00"></label>
+                <label class="field-label">Working hours end<input class="input" id="cfgEnd" type="time" value="17:00"></label>
+                <label class="field-label">Staff available<input class="input" id="cfgStaff" type="number" min="0" value="1"></label>
+                <label class="field-label">Patient preparation time (minutes)<input class="input" id="cfgPrep" type="number" min="0" value="0"></label>
+                <label class="field-label">Report generation time (minutes)<input class="input" id="cfgReport" type="number" min="0" value="0"></label>
+                <label class="field-label">Queue priority<select class="input" id="cfgPriority"><option value="Normal">Normal</option><option value="High">High</option><option value="Urgent">Urgent</option></select></label>
+                <label class="field-label">Maximum queue capacity<input class="input" id="cfgQueueCapacity" type="number" min="1" value="20"></label>
+              </div>
+              <label class="field-label" style="display:block;margin-top:12px;">Notes / break or maintenance details<textarea class="input" id="cfgNotes" rows="2" maxlength="1000" placeholder="Optional notes, break schedule, machine constraints…"></textarea></label>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:16px;"><button class="btn btn-primary" type="submit">Save to This Device</button><button class="btn btn-secondary" type="button" id="cancelManualCentre">Cancel</button></div>
+            </form>
           </div>
+        </div>
+        <div class="card" style="margin-bottom:16px;">
+          <div class="card-body">
+            <div style="display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:12px;"><div><div class="section-title">My Hospital Configurations</div><div style="font-size:12px;color:var(--text-3);">Private to this browser/device · use Export to keep a backup</div></div><div style="display:flex;gap:8px;flex-wrap:wrap;"><button class="btn btn-secondary btn-sm" id="exportLocalHospitalData" type="button">Export JSON</button><button class="btn btn-secondary btn-sm" id="importLocalHospitalData" type="button">Import JSON</button><input type="file" id="localHospitalFile" accept=".json,application/json" style="display:none"></div></div>
+            <div id="localHospitalSummary" class="centre-grid"></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-body"><div class="section-title">Live Backend Centres</div><div style="font-size:12px;color:var(--text-3);margin-bottom:12px;">Live queue status and calculations from the C++ backend. Your local setup is kept separate from this live list.</div><div id="centresContent" class="centre-grid"><!-- JS --></div></div>
         </div>
       </section>
 
@@ -1849,7 +1897,54 @@ button{font-family:inherit;}
     renderOverviewSchedule();
   }
   function renderQueuePage() { renderTestPicker(); renderPatientList(); }
-  function renderCentresPage() { renderCentreCards(document.getElementById('centresContent'), false); }
+  // Hospital configuration is deliberately device-local; never POST these records to the backend.
+  var LOCAL_HOSPITAL_KEY = 'pratikshaHospitalConfigurationsV1';
+  function getLocalHospitalData() {
+    try { var x = JSON.parse(localStorage.getItem(LOCAL_HOSPITAL_KEY) || '[]'); return Array.isArray(x) ? x : []; }
+    catch (e) { return []; }
+  }
+  function saveLocalHospitalData(items) { localStorage.setItem(LOCAL_HOSPITAL_KEY, JSON.stringify(items)); }
+  function localEsc(v) { return escapeHtml(String(v == null ? '' : v)); }
+  function renderLocalHospitalSummary() {
+    var el = document.getElementById('localHospitalSummary'); if (!el) return;
+    var rows = getLocalHospitalData();
+    if (!rows.length) { el.innerHTML = '<div class="empty-state" style="grid-column:1/-1;padding:18px;"><div class="empty-title">No local hospital setup yet</div><div class="empty-desc">Click “Add Centre Manually” to configure your first hospital and centre.</div></div>'; return; }
+    el.innerHTML = rows.map(function (c) {
+      return '<article class="local-hospital-card"><h3>' + localEsc(c.hospitalName) + '</h3><div class="local-hospital-meta">' +
+        'Hospital ID: ' + localEsc(c.hospitalId || '—') + '<br>Location: ' + localEsc(c.city || '—') + '<br><strong>' + localEsc(c.centreName) + '</strong> · ' + localEsc(c.testType) + '<br>' +
+        'Machines: ' + Number(c.activeMachines || 0) + '/' + Number(c.totalMachines || 0) + ' active · ' + Number(c.maintenanceMachines || 0) + ' maintenance<br>' +
+        'Active tests: ' + Number(c.activeTests || 0) + ' · Max simultaneous: ' + Number(c.maxSimultaneous || 1) + '<br>' +
+        'Duration: ' + Number(c.durationMinutes || 0) + ' min + ' + Number(c.bufferMinutes || 0) + ' min buffer<br>Status: ' + localEsc(c.status) + '<br>Hours: ' + localEsc(c.workingStart || '—') + '–' + localEsc(c.workingEnd || '—') +
+        '</div><div class="local-card-actions"><button type="button" class="btn btn-secondary btn-sm" data-edit-local="' + localEsc(c.id) + '">Edit</button><button type="button" class="btn btn-secondary btn-sm" data-delete-local="' + localEsc(c.id) + '">Delete</button></div></article>';
+    }).join('');
+    el.querySelectorAll('[data-delete-local]').forEach(function (b) { b.addEventListener('click', function () { if (!confirm('Delete this local centre configuration from this device?')) return; saveLocalHospitalData(getLocalHospitalData().filter(function (x) { return x.id !== b.getAttribute('data-delete-local'); })); renderLocalHospitalSummary(); }); });
+    el.querySelectorAll('[data-edit-local]').forEach(function (b) { b.addEventListener('click', function () { var item = getLocalHospitalData().find(function (x) { return x.id === b.getAttribute('data-edit-local'); }); if (item) openManualCentre(item); }); });
+  }
+  function openManualCentre(item) {
+    var card = document.getElementById('hospitalSetupCard'); if (!card) return;
+    card.style.display = 'block';
+    var form = document.getElementById('manualCentreForm'); form.dataset.editId = item ? item.id : '';
+    var values = item || { hospitalName: '', hospitalId: '', city: '', centreName: '', testType: 'Blood Test / Pathology', totalMachines: 1, activeMachines: 1, maintenanceMachines: 0, activeTests: 0, maxSimultaneous: 1, durationMinutes: 15, bufferMinutes: 5, status: 'Active', workingStart: '09:00', workingEnd: '17:00', staffAvailable: 1, prepMinutes: 0, reportMinutes: 0, priority: 'Normal', queueCapacity: 20, notes: '' };
+    var map = {cfgHospital:'hospitalName',cfgHospitalId:'hospitalId',cfgCity:'city',cfgCentreName:'centreName',cfgMachines:'totalMachines',cfgActiveMachines:'activeMachines',cfgMaintenance:'maintenanceMachines',cfgActiveTests:'activeTests',cfgMaxSimultaneous:'maxSimultaneous',cfgDuration:'durationMinutes',cfgBuffer:'bufferMinutes',cfgStatus:'status',cfgStart:'workingStart',cfgEnd:'workingEnd',cfgStaff:'staffAvailable',cfgPrep:'prepMinutes',cfgReport:'reportMinutes',cfgPriority:'priority',cfgQueueCapacity:'queueCapacity',cfgNotes:'notes'};
+    Object.keys(map).forEach(function (id) { var el = document.getElementById(id); if (el) el.value = values[map[id]] == null ? '' : values[map[id]]; });
+    var sel = document.getElementById('cfgTestType'); var custom = !Array.from(sel.options).some(function (o) { return o.value === values.testType; });
+    if (custom) { sel.value = '__custom__'; document.getElementById('cfgCustomTest').value = values.testType || ''; document.getElementById('customTestWrap').style.display = 'flex'; }
+    else { sel.value = values.testType; document.getElementById('cfgCustomTest').value = ''; document.getElementById('customTestWrap').style.display = 'none'; }
+    card.scrollIntoView({behavior:'smooth',block:'start'});
+  }
+  function submitManualCentre(e) {
+    e.preventDefault(); var $ = function(id){return document.getElementById(id);};
+    var testType = $('cfgTestType').value === '__custom__' ? $('cfgCustomTest').value.trim() : $('cfgTestType').value;
+    var total = Number($('cfgMachines').value), active = Number($('cfgActiveMachines').value), maintenance = Number($('cfgMaintenance').value);
+    if (!testType) { alert('Please enter the custom test type.'); return; }
+    if (active + maintenance > total) { alert('Active machines + maintenance machines cannot exceed total machines.'); return; }
+    var obj = {id:e.currentTarget.dataset.editId || ('local-' + Date.now() + '-' + Math.random().toString(36).slice(2,7)), hospitalName:$('cfgHospital').value.trim(), hospitalId:$('cfgHospitalId').value.trim() || ('H-' + Date.now().toString().slice(-6)), city:$('cfgCity').value.trim(), centreName:$('cfgCentreName').value.trim(), testType:testType, totalMachines:total, activeMachines:active, maintenanceMachines:maintenance, activeTests:Number($('cfgActiveTests').value), maxSimultaneous:Number($('cfgMaxSimultaneous').value), durationMinutes:Number($('cfgDuration').value), bufferMinutes:Number($('cfgBuffer').value), status:$('cfgStatus').value, workingStart:$('cfgStart').value, workingEnd:$('cfgEnd').value, staffAvailable:Number($('cfgStaff').value), prepMinutes:Number($('cfgPrep').value), reportMinutes:Number($('cfgReport').value), priority:$('cfgPriority').value, queueCapacity:Number($('cfgQueueCapacity').value), notes:$('cfgNotes').value.trim(), updatedAt:new Date().toISOString()};
+    if (!obj.hospitalName || !obj.centreName || obj.totalMachines < 1 || obj.durationMinutes < 1 || obj.maxSimultaneous < 1) { alert('Please complete the required fields with valid values.'); return; }
+    var all = getLocalHospitalData(), idx = all.findIndex(function(x){return x.id === obj.id;}); if (idx >= 0) all[idx] = obj; else all.push(obj);
+    saveLocalHospitalData(all); renderLocalHospitalSummary(); $('hospitalSetupCard').style.display = 'none'; e.currentTarget.reset(); e.currentTarget.dataset.editId = ''; $('cfgMachines').value='1'; $('cfgActiveMachines').value='1'; $('cfgMaintenance').value='0'; $('cfgActiveTests').value='0'; $('cfgMaxSimultaneous').value='1'; $('cfgDuration').value='15'; $('cfgBuffer').value='5'; $('cfgStatus').value='Active'; $('cfgStart').value='09:00'; $('cfgEnd').value='17:00'; $('cfgStaff').value='1'; $('cfgPrep').value='0'; $('cfgReport').value='0'; $('cfgPriority').value='Normal'; $('cfgQueueCapacity').value='20'; $('customTestWrap').style.display='none';
+    showToast('Hospital centre saved on this device only.', 'success');
+  }
+  function renderCentresPage() { renderCentreCards(document.getElementById('centresContent'), false); renderLocalHospitalSummary(); }
   function renderSchedulePage() {
     renderScheduleSequence(document.getElementById('scheduleSequence'));
     renderScheduleTimeline(document.getElementById('scheduleTimeline'));
@@ -1964,6 +2059,15 @@ button{font-family:inherit;}
 
     var sr = document.getElementById('scheduleRefreshBtn');
     if (sr) sr.addEventListener('click', refreshAll);
+
+    var manualBtn = document.getElementById('manualCentreBtn'); if (manualBtn) manualBtn.addEventListener('click', function(){ openManualCentre(null); });
+    var manualForm = document.getElementById('manualCentreForm'); if (manualForm) manualForm.addEventListener('submit', submitManualCentre);
+    var cancelManual = document.getElementById('cancelManualCentre'); if (cancelManual) cancelManual.addEventListener('click', function(){ document.getElementById('hospitalSetupCard').style.display='none'; });
+    var testTypeSelect = document.getElementById('cfgTestType'); if (testTypeSelect) testTypeSelect.addEventListener('change', function(){ document.getElementById('customTestWrap').style.display = this.value === '__custom__' ? 'flex' : 'none'; });
+    var machinesInput = document.getElementById('cfgMachines'); if (machinesInput) machinesInput.addEventListener('change', function(){ var max = Math.max(1, Number(this.value)||1); document.getElementById('cfgMaxSimultaneous').max = max; if (Number(document.getElementById('cfgMaxSimultaneous').value) > max) document.getElementById('cfgMaxSimultaneous').value = max; });
+    var exportLocal = document.getElementById('exportLocalHospitalData'); if (exportLocal) exportLocal.addEventListener('click', function(){ var blob = new Blob([JSON.stringify({schemaVersion:1,exportedAt:new Date().toISOString(),hospitals:getLocalHospitalData()},null,2)],{type:'application/json'}); var a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='pratiksha-hospital-config.json'; a.click(); URL.revokeObjectURL(a.href); });
+    var importLocalBtn = document.getElementById('importLocalHospitalData'); var localFile = document.getElementById('localHospitalFile'); if (importLocalBtn && localFile) importLocalBtn.addEventListener('click', function(){localFile.click();});
+    if (localFile) localFile.addEventListener('change', function(){ var f=localFile.files && localFile.files[0]; if(!f)return; var reader=new FileReader(); reader.onload=function(){ try { var parsed=JSON.parse(reader.result); var rows=Array.isArray(parsed)?parsed:(parsed.hospitals||parsed.centres); if(!Array.isArray(rows)) throw new Error('JSON must contain a hospitals or centres array.'); if(!confirm('Import '+rows.length+' local configuration record(s)? This will replace current local configurations.')) return; saveLocalHospitalData(rows); renderLocalHospitalSummary(); showToast('Local hospital configuration imported.','success'); } catch(err){alert('Could not import JSON: '+err.message);} finally{localFile.value='';} }; reader.readAsText(f); });
 
     var importBtn = document.getElementById('centresImportBtn');
     if (importBtn) importBtn.addEventListener('click', openImportModal);
