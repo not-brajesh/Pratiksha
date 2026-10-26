@@ -1243,9 +1243,9 @@ button{font-family:inherit;}
         currentTestId: currentTestId,
         elapsedSeconds: elapsedSeconds,
         remainingSeconds: remainingSeconds,
+        _receivedAt: now,
         completedCount: completedCount,
         available: status === 'AVAILABLE',
-        _receivedAt: now,
         _raw: c
       };
     });
@@ -2052,10 +2052,21 @@ button{font-family:inherit;}
     container.innerHTML = active.map(function (c) {
       var patient = state.patients.find(function (p) { return p.id === c.currentPatient; });
       var testName = c.currentTestId ? getTestName(c.currentTestId) : '—';
-      var startedAt = new Date(now - c.elapsedSeconds * 1000);
-      var expectedEnd = new Date(now + c.remainingSeconds * 1000);
+
+      // Seconds elapsed since this centre's data was calculated
+      var receivedAt = Number(c._receivedAt || now);
+      var driftSeconds = Math.max(0, Math.floor((now - receivedAt) / 1000));
+
+      // Live elapsed and remaining values
+      var liveElapsedSeconds = Math.max(0, Number(c.elapsedSeconds || 0) + driftSeconds);
+      var liveRemainingSeconds = Math.max(0, Number(c.remainingSeconds || 0) - driftSeconds);
+
+      // Actual estimated timestamps
+      var startedAt = new Date(now - liveElapsedSeconds * 1000);
+      var expectedEnd = new Date(now + liveRemainingSeconds * 1000);
+
       return '<div class="timeline-row">' +
-        '<span class="timeline-time">' + fmtSeconds(c.elapsedSeconds) + '</span>' +
+        '<span class="timeline-time">' + fmtSeconds(liveElapsedSeconds) + '</span>' +
         '<span class="timeline-event">' +
           '<strong style="color:var(--green);">● In Progress</strong>' +
           ' · <strong>' + escapeHtml(c.currentPatient) + '</strong>' +
@@ -2065,7 +2076,7 @@ button{font-family:inherit;}
           '<div style="font-size:11px;color:var(--text-3);margin-top:5px;line-height:1.8;">' +
             'Started: ' + escapeHtml(formatISTTime(startedAt)) +
             '<br>Expected: ' + escapeHtml(formatISTTime(expectedEnd)) +
-            '<br>Remaining: ' + fmtSeconds(c.remainingSeconds) +
+            '<br>Remaining: ' + fmtSeconds(liveRemainingSeconds) +
           '</div>' +
         '</span>' +
       '</div>';
