@@ -24,37 +24,36 @@ using namespace std;
 
 // ============================================================
 // PRATIKSHA — Patient Routing & Intelligent Test Queue Handling
-// Backend v1.7.2
+// Backend v1.8.0
 //
-// Changes over v1.7.1:
-//   [Auto-mode fix] handleNextPatient() now restricts its
-//   scheduling simulation to ONLY the requested centre.
-//   Previously, all centres were fed into scheduleStep(), so a
-//   "next patient" request for centre X could consume a patient
-//   that the scheduler had already matched to another centre Y —
-//   leaving X with patient:null even when an eligible patient
-//   existed. With `if (c.id != centreId) continue;` in the
-//   sim-centres build loop, the scheduler considers only X's
-//   eligibility, guaranteeing a match whenever one exists.
+// Changes over v1.7.2:
+//   [NEW] Stateless calculation endpoint POST /api/queue/calculate
+//         Accepts a full hospital configuration snapshot
+//         ({hospital:{tests, centres, patients}}) and returns a
+//         queue schedule without persisting any of it. This is
+//         the endpoint the frontend now prefers so that custom
+//         hospital configurations (including custom test IDs)
+//         are properly supported by the C++ scheduler.
 //
-//   [PORT-config] PORT is now read from the PORT environment
-//   variable (validated 1–65535). Falls back to 8080 when unset
-//   or invalid. Backlog / max-request / timing settings are
-//   unchanged.
+//   [NEW] Capacity-aware scheduling in the stateless calc:
+//         - Each centre has `activeMachines` independent slots
+//         - `currentActiveTests` initialises that many slots as
+//           already occupied for `durationMinutes`
+//         - Tests wait for patient availability (previous test
+//           completion) AND centre slot availability
+//         - `bufferMinutes` occupies the slot but does not delay
+//           the patient (matches frontend's calculateQueueLocally)
+//         - `maxSimultaneousTests` used as a fallback when
+//           `activeMachines` is zero
 //
-// Existing backend features (unchanged since v1.7.0):
-//   [Step 1] Auto-generated patient IDs (P001, P002, …)
-//   [Step 2] Single machine per testing centre (A1/B1/C1/D1)
-//   [Step 3] JSON config import (POST /api/configuration)
-//   [Step 4] Live centre timing: steady_clock timestamps,
-//            /api/centres → {status, elapsedSeconds,
-//            remainingSeconds}, AWAITING_CONFIRMATION state
-//   [Step 5] Persistent event history (GET /api/events)
+//   [PRESERVED] All v1.7.2 behaviour, including the auto-mode
+//         fix in handleNextPatient(), PORT env override, JSON
+//         config import, live centre timing, and event history.
+//         The existing GET /api/queue and its in-memory model
+//         remain functional for backward compatibility.
 // ============================================================
 
 namespace Config {
-    // [PORT-config] Read port from env var PORT with validation,
-    // falling back to 8080 when unset / invalid.
     inline int getPort() {
         const char* envPort = std::getenv("PORT");
 
@@ -78,7 +77,7 @@ namespace Config {
     constexpr size_t MAX_EVENT_LOG = 500;
 
     const string APP_NAME = "PRATIKSHA";
-    const string VERSION = "1.7.2";
+    const string VERSION = "1.8.0";
 }
 
 // ------------------------------------------------------------
@@ -185,6 +184,48 @@ struct QueueResult {
 };
 
 // ------------------------------------------------------------
+// Stateless calc models (POST /api/queue/calculate)
+// ------------------------------------------------------------
+
+struct StatelessTest {
+    string id;
+    string name;
+    int durationMinutes = 0;
+    int bufferMinutes = 0;
+};
+
+struct StatelessCentre {
+    string id;
+    string name;
+    vector<string> testIds;
+    int totalMachines = 1;
+    int activeMachines = 1;
+    int maintenanceMachines = 0;
+    int currentActiveTests = 0;
+    int maxSimultaneousTests = 1;
+    int durationMinutes = 0;
+    int bufferMinutes = 0;
+    bool enabled = true;
+};
+
+struct StatelessPatientTest {
+    string testId;
+    string status;
+};
+
+struct StatelessPatient {
+    string id;
+    string name;
+    vector<StatelessPatientTest> tests;
+};
+
+struct StatelessCalcRequest {
+    vector<StatelessTest> tests;
+    vector<StatelessCentre> centres;
+    vector<StatelessPatient> patients;
+};
+
+// ------------------------------------------------------------
 // Time helpers
 // ------------------------------------------------------------
 
@@ -200,9 +241,6 @@ long long currentWallMs() {
         system_clock::now().time_since_epoch()).count();
 }
 
-// Returns int seconds remaining; 0 if not applicable.
-// Frontend treats this as a snapshot at fetch time and adds
-// its own client-side drift.
 int centreRemainingSeconds(const TestingCentre& c) {
     if (c.currentPatient.empty()) return 0;
     if (c.expectedCompletionMs <= 0) return 0;
@@ -211,8 +249,6 @@ int centreRemainingSeconds(const TestingCentre& c) {
     return (int)((c.expectedCompletionMs - now) / 1000);
 }
 
-// Returns int seconds elapsed since test start; 0 if not applicable.
-// Frontend adds client-side drift on top of this snapshot.
 int centreElapsedSeconds(const TestingCentre& c) {
     if (c.currentPatient.empty()) return 0;
     if (c.startedAtMs <= 0) return 0;
@@ -229,7 +265,7 @@ string centreStatusString(const TestingCentre& c) {
 }
 
 // ------------------------------------------------------------
-// Server State
+// Server State (in-memory backend model, kept for /api/queue)
 // ------------------------------------------------------------
 
 class ServerState {
@@ -405,7 +441,7 @@ public:
 };
 
 // ------------------------------------------------------------
-// JSON escaping (for output)
+// JSON escaping
 // ------------------------------------------------------------
 
 string escapeJson(const string& s) {
@@ -425,7 +461,7 @@ string escapeJson(const string& s) {
 }
 
 // ------------------------------------------------------------
-// Minimal self-contained JSON parser
+// Minimal JSON parser (unchanged)
 // ------------------------------------------------------------
 
 struct JsonValue {
@@ -705,7 +741,7 @@ bool matchPrefix(const string& path, const string& prefix, string& rest) {
 }
 
 // ------------------------------------------------------------
-// Simulation types
+// In-memory simulation (unchanged)
 // ------------------------------------------------------------
 
 struct SimPatient {
@@ -825,10 +861,6 @@ vector<SimAssignment> scheduleStep(
     }
     return result;
 }
-
-// ------------------------------------------------------------
-// computeQueue — event-based simulation
-// ------------------------------------------------------------
 
 QueueResult computeQueue(const ServerState& state) {
     QueueResult result;
@@ -998,6 +1030,180 @@ QueueResult computeQueue(const ServerState& state) {
             result.metrics.patientsCompleted++;
         }
     }
+
+    return result;
+}
+
+// ============================================================
+// [v1.8.0 NEW] Stateless capacity-aware queue calculation
+// Mirrors the frontend's calculateQueueLocally() so that
+// whether the C++ backend or the JS fallback runs, the
+// resulting schedule is identical.
+// ============================================================
+
+QueueResult calculateStatelessQueue(const StatelessCalcRequest& req) {
+    QueueResult result;
+
+    // Per-centre slot availability vector.
+    // Each slot represents one active machine and holds the
+    // earliest minute when that machine becomes free.
+    map<string, vector<long>> centreSlots;
+
+    for (const auto& c : req.centres) {
+        if (!c.enabled) continue;
+
+        // Effective slot count = activeMachines, with sensible
+        // fallbacks to maxSimultaneousTests and then 1.
+        int slotCount = c.activeMachines;
+        if (slotCount <= 0) slotCount = c.maxSimultaneousTests;
+        if (slotCount <= 0) slotCount = 1;
+
+        // Saturate at maxSimultaneousTests when it's a stricter
+        // ceiling than activeMachines (rare but valid).
+        if (c.maxSimultaneousTests > 0 &&
+            c.maxSimultaneousTests < slotCount) {
+            slotCount = c.maxSimultaneousTests;
+        }
+
+        vector<long> slots((size_t)slotCount, 0L);
+
+        // currentActiveTests: administrator-entered starting
+        // workload. Model each as a running test that occupies
+        // its slot for `durationMinutes` (start = 0, end = dur).
+        int busySlots = c.currentActiveTests;
+        if (busySlots < 0) busySlots = 0;
+        if (busySlots > slotCount) busySlots = slotCount;
+        long initialOccupancy = (long)(c.durationMinutes > 0
+                                       ? c.durationMinutes : 0);
+        for (int i = 0; i < busySlots; ++i) {
+            slots[(size_t)i] = initialOccupancy;
+        }
+
+        centreSlots[c.id] = std::move(slots);
+    }
+
+    // Build test-id → test lookup for name resolution.
+    map<string, const StatelessTest*> testLookup;
+    for (const auto& t : req.tests) {
+        if (!t.id.empty()) testLookup[t.id] = &t;
+    }
+
+    long maxTime = 0;
+    long sumWaiting = 0;
+    long sumCompletion = 0;
+    int testsCompleted = 0;
+    int patientsCompleted = 0;
+
+    for (const auto& p : req.patients) {
+        result.perPatient[p.id] = {};
+        long patientAvail = 0;
+
+        for (const auto& ts : p.tests) {
+            if (ts.status == "COMPLETED") continue;
+
+            // Skip tests that no centre can handle (same as JS).
+            StatelessCentre* chosenCentre = nullptr;
+            for (auto& c : req.centres) {
+                if (!c.enabled) continue;
+                bool handles = false;
+                for (const auto& tid : c.testIds) {
+                    if (tid == ts.testId) { handles = true; break; }
+                }
+                if (!handles) continue;
+                if (!centreSlots.count(c.id)) continue;
+                chosenCentre = const_cast<StatelessCentre*>(&c);
+                break;
+            }
+            if (!chosenCentre) continue;
+
+            auto slotIt = centreSlots.find(chosenCentre->id);
+            if (slotIt == centreSlots.end() || slotIt->second.empty()) continue;
+            vector<long>& slots = slotIt->second;
+
+            // Earliest slot in this centre.
+            long earliestSlot = slots[0];
+            size_t earliestIdx = 0;
+            for (size_t s = 1; s < slots.size(); ++s) {
+                if (slots[s] < earliestSlot) {
+                    earliestSlot = slots[s];
+                    earliestIdx = s;
+                }
+            }
+
+            long startTime = std::max(earliestSlot, patientAvail);
+
+            int dur = chosenCentre->durationMinutes;
+            if (dur <= 0) {
+                auto tIt = testLookup.find(ts.testId);
+                if (tIt != testLookup.end() && tIt->second->durationMinutes > 0) {
+                    dur = tIt->second->durationMinutes;
+                }
+            }
+            if (dur <= 0) dur = 10;
+
+            int buf = chosenCentre->bufferMinutes;
+            if (buf < 0) buf = 0;
+
+            long endTime = startTime + dur;
+
+            if (startTime > patientAvail) {
+                sumWaiting += (startTime - patientAvail);
+            }
+
+            // Slot occupied until end of test + buffer.
+            slots[earliestIdx] = endTime + buf;
+            patientAvail = endTime;
+
+            // Emit events.
+            QueueEvent startEv;
+            startEv.time = (int)startTime;
+            startEv.type = "start";
+            startEv.centreId = chosenCentre->id;
+            startEv.patientId = p.id;
+            startEv.testId = ts.testId;
+            result.events.push_back(startEv);
+
+            QueueEvent completeEv;
+            completeEv.time = (int)endTime;
+            completeEv.type = "complete";
+            completeEv.centreId = chosenCentre->id;
+            completeEv.patientId = p.id;
+            completeEv.testId = ts.testId;
+            result.events.push_back(completeEv);
+
+            // Per-patient step.
+            QueueStep step;
+            step.testId = ts.testId;
+            step.centreId = chosenCentre->id;
+            step.startTime = (int)startTime;
+            step.duration = (int)dur;
+            result.perPatient[p.id].push_back(step);
+
+            testsCompleted++;
+            if (endTime > maxTime) maxTime = endTime;
+        }
+
+        if (!result.perPatient[p.id].empty()) {
+            sumCompletion += (result.perPatient[p.id].back().startTime +
+                              result.perPatient[p.id].back().duration);
+            patientsCompleted++;
+        }
+    }
+
+    std::sort(result.events.begin(), result.events.end(),
+        [](const QueueEvent& a, const QueueEvent& b) {
+            if (a.time != b.time) return a.time < b.time;
+            // "start" before "complete" at the same minute.
+            return a.type == "start" && b.type != "start";
+        });
+
+    result.totalTime = (int)maxTime;
+    result.metrics.makespan = (int)maxTime;
+    result.metrics.sumWaitingTimes = sumWaiting;
+    result.metrics.sumCompletionTimes = sumCompletion;
+    result.metrics.sumMovementTimes = 0;
+    result.metrics.testsCompleted = testsCompleted;
+    result.metrics.patientsCompleted = patientsCompleted;
 
     return result;
 }
@@ -1243,6 +1449,216 @@ string handleResetQueue(ServerState& st) {
         "\"nextPatientId\":\"" + escapeJson(st.peekNextPatientId()) + "\"}");
 }
 
+// ============================================================
+// [v1.8.0 NEW] POST /api/queue/calculate
+// Stateless, capacity-aware queue calculation driven entirely
+// by the caller-supplied hospital snapshot. Nothing from the
+// request is persisted.
+// ============================================================
+
+string handleStatelessQueueCalculate(const string& body) {
+    if (body.empty()) {
+        return errorResponse(400, "Bad Request", "Request body is empty");
+    }
+
+    JsonValue root;
+    {
+        JsonParser parser(body);
+        if (!parser.parse(root) || !root.isObj()) {
+            return errorResponse(400, "Bad Request", "Invalid JSON body");
+        }
+    }
+
+    if (!root.has("hospital") || !root.at("hospital").isObj()) {
+        return errorResponse(400, "Bad Request",
+            "Missing 'hospital' object");
+    }
+
+    const JsonValue& hospital = root.at("hospital");
+
+    StatelessCalcRequest req;
+
+    // -------- Tests --------
+    if (hospital.has("tests") && hospital.at("tests").isArr()) {
+        for (const auto& t : hospital.at("tests").arr) {
+            if (!t.isObj()) continue;
+            StatelessTest st;
+            st.id = t.has("id") ? t.at("id").asStr("") : "";
+            st.name = t.has("name") ? t.at("name").asStr(st.id) : st.id;
+            if (t.has("durationMinutes") && t.at("durationMinutes").isNum()) {
+                st.durationMinutes = (int)t.at("durationMinutes").nval;
+            }
+            if (t.has("bufferMinutes") && t.at("bufferMinutes").isNum()) {
+                st.bufferMinutes = (int)t.at("bufferMinutes").nval;
+            }
+            if (st.durationMinutes <= 0) {
+                return errorResponse(400, "Bad Request",
+                    "Test '" + st.id + "' has invalid durationMinutes");
+            }
+            if (!st.id.empty()) req.tests.push_back(st);
+        }
+    }
+
+    // -------- Centres --------
+    if (hospital.has("centres") && hospital.at("centres").isArr()) {
+        for (const auto& c : hospital.at("centres").arr) {
+            if (!c.isObj()) continue;
+            StatelessCentre sc;
+            sc.id = c.has("id") ? c.at("id").asStr("") : "";
+            sc.name = c.has("name") ? c.at("name").asStr(sc.id) : sc.id;
+
+            if (c.has("testIds") && c.at("testIds").isArr()) {
+                for (const auto& tid : c.at("testIds").arr) {
+                    if (tid.isStr()) sc.testIds.push_back(tid.sval);
+                }
+            } else if (c.has("testId") && c.at("testId").isStr()) {
+                sc.testIds.push_back(c.at("testId").sval);
+            }
+
+            if (c.has("totalMachines") && c.at("totalMachines").isNum())
+                sc.totalMachines = (int)c.at("totalMachines").nval;
+            if (c.has("activeMachines") && c.at("activeMachines").isNum())
+                sc.activeMachines = (int)c.at("activeMachines").nval;
+            if (c.has("maintenanceMachines") && c.at("maintenanceMachines").isNum())
+                sc.maintenanceMachines = (int)c.at("maintenanceMachines").nval;
+            if (c.has("currentActiveTests") && c.at("currentActiveTests").isNum())
+                sc.currentActiveTests = (int)c.at("currentActiveTests").nval;
+            if (c.has("maxSimultaneousTests") && c.at("maxSimultaneousTests").isNum())
+                sc.maxSimultaneousTests = (int)c.at("maxSimultaneousTests").nval;
+            if (c.has("durationMinutes") && c.at("durationMinutes").isNum())
+                sc.durationMinutes = (int)c.at("durationMinutes").nval;
+            if (c.has("bufferMinutes") && c.at("bufferMinutes").isNum())
+                sc.bufferMinutes = (int)c.at("bufferMinutes").nval;
+
+            sc.enabled = true;
+            if (c.has("enabled") && c.at("enabled").isBool() && !c.at("enabled").bval)
+                sc.enabled = false;
+            if (c.has("status") && c.at("status").isStr()) {
+                const string& stt = c.at("status").sval;
+                if (stt == "INACTIVE" || stt == "Inactive" || stt == "inactive")
+                    sc.enabled = false;
+            }
+
+            if (!sc.id.empty()) req.centres.push_back(sc);
+        }
+    }
+
+    // -------- Patients --------
+    if (hospital.has("patients") && hospital.at("patients").isArr()) {
+        for (const auto& p : hospital.at("patients").arr) {
+            if (!p.isObj()) continue;
+            StatelessPatient sp;
+            sp.id = p.has("id") ? p.at("id").asStr("") : "";
+            sp.name = p.has("name") ? p.at("name").asStr("") : "";
+
+            if (p.has("tests") && p.at("tests").isArr()) {
+                for (const auto& t : p.at("tests").arr) {
+                    if (!t.isObj()) continue;
+                    StatelessPatientTest spt;
+                    spt.testId = t.has("testId") ? t.at("testId").asStr("") : "";
+                    spt.status = t.has("status") ? t.at("status").asStr("WAITING")
+                                                 : "WAITING";
+                    if (!spt.testId.empty()) sp.tests.push_back(spt);
+                }
+            }
+
+            if (!sp.id.empty()) req.patients.push_back(sp);
+        }
+    }
+
+    // -------- Validate --------
+    if (req.tests.empty()) {
+        return errorResponse(400, "Bad Request",
+            "Configuration must include at least one test");
+    }
+    if (req.centres.empty()) {
+        return errorResponse(400, "Bad Request",
+            "Configuration must include at least one centre");
+    }
+
+    // Cross-check: every referenced test must exist.
+    set<string> knownTestIds;
+    for (const auto& t : req.tests) knownTestIds.insert(t.id);
+    for (const auto& c : req.centres) {
+        for (const auto& tid : c.testIds) {
+            if (!knownTestIds.count(tid)) {
+                return errorResponse(400, "Bad Request",
+                    "Centre '" + c.id + "' references unknown test '" + tid + "'");
+            }
+        }
+    }
+
+    // -------- Calculate --------
+    QueueResult r = calculateStatelessQueue(req);
+
+    // Lookup maps for names.
+    map<string, string> testNames;
+    for (const auto& t : req.tests) testNames[t.id] = t.name;
+    map<string, string> centreNames;
+    for (const auto& c : req.centres) centreNames[c.id] = c.name;
+
+    auto testNameOf = [&](const string& id) -> string {
+        auto it = testNames.find(id);
+        return it != testNames.end() ? it->second : id;
+    };
+    auto centreNameOf = [&](const string& id) -> string {
+        auto it = centreNames.find(id);
+        return it != centreNames.end() ? it->second : id;
+    };
+
+    // -------- Serialise --------
+    ostringstream j;
+    j << "{\"success\":true,"
+      << "\"computed\":" << (req.patients.empty() ? "false" : "true") << ","
+      << "\"totalTime\":" << r.totalTime << ",";
+
+    j << "\"events\":[";
+    for (size_t i = 0; i < r.events.size(); ++i) {
+        const auto& e = r.events[i];
+        if (i) j << ",";
+        j << "{\"type\":\"" << escapeJson(e.type) << "\""
+          << ",\"time\":" << e.time
+          << ",\"patientId\":\"" << escapeJson(e.patientId) << "\""
+          << ",\"testId\":\"" << escapeJson(e.testId) << "\""
+          << ",\"testName\":\"" << escapeJson(testNameOf(e.testId)) << "\""
+          << ",\"centreId\":\"" << escapeJson(e.centreId) << "\""
+          << ",\"centreName\":\"" << escapeJson(centreNameOf(e.centreId)) << "\"}";
+    }
+    j << "],";
+
+    j << "\"perPatient\":{";
+    bool firstP = true;
+    for (const auto& kv : r.perPatient) {
+        if (!firstP) j << ",";
+        firstP = false;
+        j << "\"" << escapeJson(kv.first) << "\":[";
+        for (size_t i = 0; i < kv.second.size(); ++i) {
+            if (i) j << ",";
+            const auto& s = kv.second[i];
+            j << "{\"testId\":\"" << escapeJson(s.testId) << "\""
+              << ",\"testName\":\"" << escapeJson(testNameOf(s.testId)) << "\""
+              << ",\"centreId\":\"" << escapeJson(s.centreId) << "\""
+              << ",\"centreName\":\"" << escapeJson(centreNameOf(s.centreId)) << "\""
+              << ",\"startTime\":" << s.startTime
+              << ",\"duration\":" << s.duration
+              << ",\"endTime\":" << (s.startTime + s.duration) << "}";
+        }
+        j << "]";
+    }
+    j << "},";
+
+    j << "\"metrics\":{"
+      << "\"makespan\":" << r.metrics.makespan << ","
+      << "\"sumCompletionTimes\":" << r.metrics.sumCompletionTimes << ","
+      << "\"sumWaitingTimes\":" << r.metrics.sumWaitingTimes << ","
+      << "\"sumMovementTimes\":" << r.metrics.sumMovementTimes << ","
+      << "\"testsCompleted\":" << r.metrics.testsCompleted << ","
+      << "\"patientsCompleted\":" << r.metrics.patientsCompleted << "}";
+
+    j << "}";
+    return jsonResponse(200, "OK", j.str());
+}
+
 string handleGetEvents(const ServerState& st) {
     ostringstream j;
     j << "{\"success\":true,"
@@ -1304,12 +1720,6 @@ string handleNextPatient(ServerState& st, const string& centreId) {
     vector<SimCentre> simC;
     long long nowMs = currentSteadyMs();
     for (auto& c : st.centres) {
-        // [v1.7.2 FIX] Only build simulation for the requested centre.
-        // Without this, scheduleStep() could match an eligible patient
-        // to a DIFFERENT centre, consume that patient from the pool,
-        // and leave this centre with no assignment — causing
-        // patient:null in the /next response even when a valid
-        // candidate existed.
         if (c.id != centreId) continue;
 
         SimCentre sc;
@@ -1680,6 +2090,12 @@ string routeRequest(const HttpRequest& req, ServerState& st) {
 
     if (m == "POST") {
         if (p == "/api/patients")        return handleAddPatient(st, req.body);
+
+        // [v1.8.0] Stateless queue calculation — must be checked
+        // before /api/queue would ever match a longer path, but
+        // here it's a distinct POST route anyway.
+        if (p == "/api/queue/calculate") return handleStatelessQueueCalculate(req.body);
+
         if (p == "/api/queue/reset")     return handleResetQueue(st);
         if (p == "/api/tests/complete")  return handleCompleteTest(st, req.body);
         if (p == "/api/configuration")   return handleImportConfiguration(st, req.body);
@@ -1694,8 +2110,9 @@ string routeRequest(const HttpRequest& req, ServerState& st) {
     bool known =
         p == "/" || p == "/api/health" || p == "/api/tests" ||
         p == "/api/centres" || p == "/api/patients" ||
-        p == "/api/queue" || p == "/api/events" || p == "/api/tests/complete" ||
-        p == "/api/configuration" ||
+        p == "/api/queue" || p == "/api/queue/calculate" ||
+        p == "/api/queue/reset" || p == "/api/events" ||
+        p == "/api/tests/complete" || p == "/api/configuration" ||
         p.rfind("/api/patients/", 0) == 0 ||
         p.rfind("/api/centres/", 0) == 0;
 
@@ -1775,6 +2192,7 @@ int main() {
          << "[API] DELETE /api/patients/{id}" << endl
          << "[API] POST   /api/tests/complete" << endl
          << "[API] GET    /api/queue" << endl
+         << "[API] POST   /api/queue/calculate    (v1.8.0 stateless)" << endl
          << "[API] POST   /api/queue/reset" << endl
          << "[API] GET    /api/events             (event history)" << endl
          << "[API] GET    /api/configuration" << endl
