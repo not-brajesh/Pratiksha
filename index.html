@@ -778,7 +778,7 @@ button{font-family:inherit;}
   }
 
   /* ════════════════════════════════════════════════════════════
-     DEFAULT TEST TYPES (CHANGE 1)
+     DEFAULT TEST TYPES
      ════════════════════════════════════════════════════════════ */
   var DEFAULT_TEST_TYPES = [
     "Blood Test / Pathology","X-Ray","CT Scan","MRI","Ultrasound / USG",
@@ -929,7 +929,7 @@ button{font-family:inherit;}
   }
 
   /* ════════════════════════════════════════════════════════════
-     TEST TYPE CRUD (CHANGE 2: reusable)
+     TEST TYPE CRUD
      ════════════════════════════════════════════════════════════ */
   function addTestType(hospitalId, testName, durationMinutes, bufferMinutes) {
     var db = getHospitalDatabase();
@@ -967,12 +967,11 @@ button{font-family:inherit;}
   }
 
   /* ════════════════════════════════════════════════════════════
-     CENTRE CRUD (CHANGE 3: accepts testIds array)
+     CENTRE CRUD
      ════════════════════════════════════════════════════════════ */
   function addCentreToLocalHospital(centreData) {
     return mutateActiveHospital(function (hospital) {
       var testIds = Array.isArray(centreData.testIds) ? centreData.testIds.slice() : [];
-      // Ensure all referenced test IDs exist in this hospital.
       testIds = testIds.filter(function (tid) {
         return hospital.tests.some(function (t) { return t.id === tid; });
       });
@@ -1074,9 +1073,7 @@ button{font-family:inherit;}
   }
 
   /* ════════════════════════════════════════════════════════════
-     QUEUE CALCULATION (local fallback) — CHANGE 4 + 11
-     Uses currentActiveTests to seed machine occupancy and
-     prefers the test-record's duration over the centre's.
+     QUEUE CALCULATION (local fallback)
      ════════════════════════════════════════════════════════════ */
   function calculateQueueLocally(hospital) {
     if (!hospital) return null;
@@ -1088,12 +1085,9 @@ button{font-family:inherit;}
     var testsCompleted = 0;
     var patientsCompleted = 0;
 
-    // Build test lookup
     var testById = {};
     hospital.tests.forEach(function (t) { testById[t.id] = t; });
 
-    // Initialise slot availability. CHANGE 4: currentActiveTests
-    // occupies slots with `durationMinutes` remaining.
     hospital.centres.forEach(function (c) {
       if (!c.enabled || c.status !== 'ACTIVE') return;
       var slots = Math.max(1, c.activeMachines || c.maxSimultaneousTests || 1);
@@ -1105,7 +1099,6 @@ button{font-family:inherit;}
       }
     });
 
-    // Tests with no matching centre -> record as unconfigured for UI
     var unconfigured = [];
 
     hospital.patients.forEach(function (patient) {
@@ -1141,7 +1134,6 @@ button{font-family:inherit;}
         }
         var startTime = Math.max(earliestSlot, patientAvail);
 
-        // CHANGE 4: prefer test-record duration; fallback to centre
         var testRec = testById[testState.testId];
         var dur = testRec && testRec.durationMinutes > 0
           ? Number(testRec.durationMinutes)
@@ -1229,7 +1221,6 @@ button{font-family:inherit;}
         currentTestId = running.test.testId;
         var start = new Date(running.test.startedAt || now).getTime();
         elapsedSeconds = Math.max(0, Math.floor((now - start) / 1000));
-        // Prefer test-specific duration
         var testRec = hospital.tests.find(function(t){ return t.id === running.test.testId; });
         var durMin = testRec && testRec.durationMinutes > 0 ? testRec.durationMinutes : (c.durationMinutes || 10);
         var dur = durMin * 60;
@@ -1410,7 +1401,6 @@ button{font-family:inherit;}
         : 'Select or create a hospital to manage its data.';
     }
 
-    // CHANGE 9: per-hospital summary cards
     if (stats) {
       if (!h) {
         stats.innerHTML = '';
@@ -1462,7 +1452,6 @@ button{font-family:inherit;}
     if (!select) return;
     setActiveHospitalId(select.value);
     state.queue = null;
-    // CHANGE 10: load this hospital's assignment mode
     var h = getActiveHospital();
     if (h && h.settings && h.settings.assignmentMode) {
       autoMode = h.settings.assignmentMode === 'auto';
@@ -1694,7 +1683,7 @@ button{font-family:inherit;}
   }
 
   /* ════════════════════════════════════════════════════════════
-     MODE CONTROLS (CHANGE 10: hospital-specific)
+     MODE CONTROLS
      ════════════════════════════════════════════════════════════ */
   function updateAssignmentModeUI() {
     var autoBtn = document.getElementById('autoModeBtn');
@@ -1704,12 +1693,10 @@ button{font-family:inherit;}
   }
   function setAssignmentMode(mode) {
     autoMode = mode === 'auto';
-    // Save to hospital-specific settings
     mutateActiveHospital(function (hospital) {
       if (!hospital.settings) hospital.settings = {};
       hospital.settings.assignmentMode = autoMode ? 'auto' : 'manual';
     });
-    // Also save to legacy key for backward compat
     localStorage.setItem(MODE_STORAGE_KEY, autoMode ? 'auto' : 'manual');
     updateAssignmentModeUI();
     showToast(autoMode ? 'Auto mode enabled.' : 'Manual mode enabled.', 'success');
@@ -1866,7 +1853,6 @@ button{font-family:inherit;}
         '<div class="empty-desc">Add a patient using the form.</div></div>';
       return;
     }
-    // CHANGE 11: surface unconfigured tests per patient
     var unconfiguredByPatient = {};
     if (state.queue && Array.isArray(state.queue.unconfigured)) {
       state.queue.unconfigured.forEach(function (u) {
@@ -1984,7 +1970,6 @@ button{font-family:inherit;}
       container.innerHTML = '<div class="loading-state"><div class="spinner"></div>Computing schedule…</div>';
       return;
     }
-    // CHANGE 11: map unconfigured tests to patients
     var unconfiguredByPatient = {};
     (state.queue.unconfigured || []).forEach(function (u) {
       if (!unconfiguredByPatient[u.patientId]) unconfiguredByPatient[u.patientId] = [];
@@ -2157,15 +2142,12 @@ button{font-family:inherit;}
   }
 
   /* ════════════════════════════════════════════════════════════
-     MANUAL CENTRE TEST PICKER (CHANGE 1 + 2 + 3)
-     Combines DEFAULT_TEST_TYPES + hospital tests, dedupes by
-     name, and renders a multi-select list of checkboxes.
+     MANUAL CENTRE TEST PICKER
      ════════════════════════════════════════════════════════════ */
   function buildAllTestOptions() {
     var h = getActiveHospital();
     var seen = {};
     var options = [];
-    // Defaults first
     DEFAULT_TEST_TYPES.forEach(function (name) {
       var key = name.toLowerCase();
       if (seen[key]) return;
@@ -2179,7 +2161,6 @@ button{font-family:inherit;}
         exists: !!existing
       });
     });
-    // Hospital-specific custom tests
     if (h) {
       h.tests.forEach(function (t) {
         var key = t.name.toLowerCase();
@@ -2201,7 +2182,6 @@ button{font-family:inherit;}
     var container = document.getElementById('cfgTestTypesList');
     if (!container) return;
     var options = buildAllTestOptions();
-    // Preserve current selections
     var selectedValues = [];
     container.querySelectorAll('input[type="checkbox"]:checked').forEach(function (cb) {
       selectedValues.push(cb.value);
@@ -2229,7 +2209,7 @@ button{font-family:inherit;}
   }
 
   /* ════════════════════════════════════════════════════════════
-     MANUAL CENTRE FORM (CHANGE 2 + 3)
+     MANUAL CENTRE FORM
      ════════════════════════════════════════════════════════════ */
   function openManualCentre(item) {
     var card = document.getElementById('hospitalSetupCard');
@@ -2261,14 +2241,13 @@ button{font-family:inherit;}
     $('cfgNotes').value = values.notes || '';
     $('cfgCustomTest').value = '';
 
-    // Render checkbox list and preselect
     renderManualCentreTestOptions();
     var container = $('cfgTestTypesList');
     container.querySelectorAll('input[type="checkbox"]').forEach(function (cb) {
       var val = cb.value;
       var isSelected = false;
       if (values.testIds && values.testIds.length) {
-        if (val.indexOf('__name:') === 0) return; // defaults w/o record can't be preselected by ID
+        if (val.indexOf('__name:') === 0) return;
         if (values.testIds.indexOf(val) !== -1) isSelected = true;
       }
       cb.checked = isSelected;
@@ -2296,7 +2275,6 @@ button{font-family:inherit;}
     var centreName = $('cfgCentreName').value.trim();
     if (!centreName) { alert('Centre name is required.'); return; }
 
-    // Collect selected test types
     var selected = [];
     document.querySelectorAll('#cfgTestTypesList input[type="checkbox"]:checked').forEach(function (cb) {
       selected.push({ value: cb.value, name: cb.getAttribute('data-name') });
@@ -2307,17 +2285,14 @@ button{font-family:inherit;}
     var primaryBuffer = Number($('cfgBuffer').value) || 5;
     var testIds = [];
 
-    // Resolve to test IDs; create test records for defaults not yet in hospital
     for (var i = 0; i < selected.length; i++) {
       var sel = selected[i];
       var resolvedId = null;
       if (sel.value.indexOf('__name:') === 0) {
-        // Default name not yet a test record — create it
         try {
           var newTest = addTestType(h.id, sel.name, primaryDuration, primaryBuffer);
           resolvedId = newTest.id;
         } catch (err) {
-          // If it already exists (race), find it
           var found = h.tests.find(function (t) { return t.name.toLowerCase() === sel.name.toLowerCase(); });
           if (found) resolvedId = found.id;
           else { alert('Could not add test "' + sel.name + '": ' + err.message); return; }
@@ -2412,7 +2387,7 @@ button{font-family:inherit;}
   }
 
   /* ════════════════════════════════════════════════════════════
-     IMPORT / EXPORT (CHANGE 7: stricter validation)
+     IMPORT / EXPORT
      ════════════════════════════════════════════════════════════ */
   function openImportModal() {
     if (!getActiveHospital()) { showToast('Select or create a hospital first.', 'warn'); return; }
@@ -2469,14 +2444,12 @@ button{font-family:inherit;}
           };
         } else { showToast('Unsupported file type.', 'error'); return; }
 
-        // Basic shape validation (before applying)
         if (!Array.isArray(config.tests) || !Array.isArray(config.centres)) {
           showToast('File must contain "tests" and "centres" arrays.', 'error'); return;
         }
         if (config.tests.length === 0) { showToast('At least one test is required.', 'error'); return; }
         if (config.centres.length === 0) { showToast('At least one centre is required.', 'error'); return; }
 
-        // Collect IDs and validate
         var testIds = {};
         var errors = [];
         config.tests.forEach(function (t, i) {
@@ -2526,7 +2499,6 @@ button{font-family:inherit;}
     if (btn) { btn.disabled = true; btn.textContent = 'Applying…'; }
     try {
       mutateActiveHospital(function (hospital) {
-        // Add tests
         pendingImportConfig.tests.forEach(function (t) {
           if (!t.name) return;
           var existing = hospital.tests.find(function (x) { return x.name.toLowerCase() === t.name.toLowerCase(); });
@@ -2543,10 +2515,8 @@ button{font-family:inherit;}
             });
           }
         });
-        // Add centres
         pendingImportConfig.centres.forEach(function (c) {
           if (!c.name) return;
-          // Match existing test by name or by id
           var matchingTest = hospital.tests.find(function (t) {
             return t.id === c.testId || t.name.toLowerCase() === (c.testId || '').toLowerCase();
           });
@@ -2718,7 +2688,6 @@ button{font-family:inherit;}
     var manualForm = document.getElementById('manualCentreForm'); if (manualForm) manualForm.addEventListener('submit', submitManualCentre);
     var cancelManual = document.getElementById('cancelManualCentre'); if (cancelManual) cancelManual.addEventListener('click', function () { document.getElementById('hospitalSetupCard').style.display = 'none'; });
 
-    // CHANGE 2: quick custom test add from form
     var cfgAddCustomTestBtn = document.getElementById('cfgAddCustomTestBtn');
     if (cfgAddCustomTestBtn) cfgAddCustomTestBtn.addEventListener('click', function () {
       var h = getActiveHospital();
@@ -2732,7 +2701,6 @@ button{font-family:inherit;}
         showToast('Test type "' + newTest.name + '" added.', 'success');
         document.getElementById('cfgCustomTest').value = '';
         renderManualCentreTestOptions();
-        // Auto-check the new test
         var container = document.getElementById('cfgTestTypesList');
         var cb = container.querySelector('input[value="' + newTest.id + '"]');
         if (cb) { cb.checked = true; var lbl = cb.closest('.test-pick'); if (lbl) lbl.classList.add('checked'); }
@@ -2815,7 +2783,16 @@ button{font-family:inherit;}
 
     setInterval(loadHealth, 20000);
     setInterval(pollTick, 2000);
-    setInterval(function () { if (state.page === 'schedule') renderLiveTimeline(document.getElementById('liveTimeline')); }, 1000);
+
+    // ── STEP 1 CHANGE ──
+    // Update Live Timeline every second while its container exists.
+    setInterval(function () {
+      var liveTimeline = document.getElementById('liveTimeline');
+
+      if (liveTimeline) {
+        renderLiveTimeline(liveTimeline);
+      }
+    }, 1000);
   }
 
   /* Expose modal helpers */
