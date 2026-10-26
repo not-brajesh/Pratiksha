@@ -24,33 +24,46 @@ using namespace std;
 
 // ============================================================
 // PRATIKSHA — Patient Routing & Intelligent Test Queue Handling
-// Backend v1.8.0
+// Backend v1.9.0
 //
-// Changes over v1.7.2:
-//   [NEW] Stateless calculation endpoint POST /api/queue/calculate
-//         Accepts a full hospital configuration snapshot
-//         ({hospital:{tests, centres, patients}}) and returns a
-//         queue schedule without persisting any of it. This is
-//         the endpoint the frontend now prefers so that custom
-//         hospital configurations (including custom test IDs)
-//         are properly supported by the C++ scheduler.
+// Changes over v1.8.0 (per architecture guidance):
+//   [Change 1] DiagnosticTest model now carries bufferMinutes
+//              and `enabled`. Test definitions are fully
+//              configurable; no test is treated as special.
+//   [Change 2] TestingCentre model expanded with bufferMinutes,
+//              machineCount, activeMachines, maintenanceMachines,
+//              currentActiveTests, maxSimultaneousTests and
+//              `enabled`. Existing positional initialisers still
+//              work because the new fields have defaults.
+//   [Change 3] handleGetConfiguration() now returns the ACTUAL
+//              stored state — no more hard-coded machineCount:1
+//              or enabled:true. Hospital name / ID come from
+//              ServerState (NOT Config::APP_NAME, which is the
+//              application name, not a hospital name).
+//   [Change 4] handleImportConfiguration() accepts and stores
+//              all the new fields, and the old
+//              "machineCount must equal 1" restriction is gone.
+//              Validation is more thorough (duplicate IDs,
+//              unknown testIds, non-positive durations, machine
+//              count consistency). This endpoint still mutates
+//              in-memory demo state so legacy GET /api/queue,
+//              GET /api/centres, etc. keep working; the new
+//              architecture uses the stateless endpoint below.
+//   [Change 5] Multi-machine scheduling lives in
+//              calculateStatelessQueue() (already present in
+//              v1.8.0). The legacy single-slot in-memory
+//              computeQueue() is retained for the demo mode
+//              and clearly documented as single-slot.
+//   [Change 6/7] Stateless /api/queue/calculate continues to
+//              accept per-request hospital snapshots so that
+//              nothing is persisted for the new architecture.
 //
-//   [NEW] Capacity-aware scheduling in the stateless calc:
-//         - Each centre has `activeMachines` independent slots
-//         - `currentActiveTests` initialises that many slots as
-//           already occupied for `durationMinutes`
-//         - Tests wait for patient availability (previous test
-//           completion) AND centre slot availability
-//         - `bufferMinutes` occupies the slot but does not delay
-//           the patient (matches frontend's calculateQueueLocally)
-//         - `maxSimultaneousTests` used as a fallback when
-//           `activeMachines` is zero
-//
-//   [PRESERVED] All v1.7.2 behaviour, including the auto-mode
-//         fix in handleNextPatient(), PORT env override, JSON
-//         config import, live centre timing, and event history.
-//         The existing GET /api/queue and its in-memory model
-//         remain functional for backward compatibility.
+// All v1.8.0 features preserved:
+//   POST /api/queue/calculate   (stateless, capacity-aware)
+//   handleNextPatient()         auto-mode single-centre fix
+//   PORT env override
+//   Live centre timing + AWAITING_CONFIRMATION
+//   Event history, JSON config import, all legacy endpoints
 // ============================================================
 
 namespace Config {
@@ -77,7 +90,13 @@ namespace Config {
     constexpr size_t MAX_EVENT_LOG = 500;
 
     const string APP_NAME = "PRATIKSHA";
-    const string VERSION = "1.8.0";
+    const string VERSION = "1.9.0";
+
+    // [Change 3] Default hospital name for the demo mode.
+    // The frontend holds the real hospital name in localStorage;
+    // this is only used as a fallback for the legacy endpoints.
+    const string DEFAULT_HOSPITAL_ID   = "H-DEFAULT";
+    const string DEFAULT_HOSPITAL_NAME = "Default Hospital";
 }
 
 // ------------------------------------------------------------
@@ -87,10 +106,15 @@ namespace Config {
 enum class TestStatus { WAITING, COMPLETED };
 enum class PatientStatus { WAITING, COMPLETED };
 
+// [Change 1] DiagnosticTest now carries bufferMinutes and
+// enabled so that tests are fully configurable and match the
+// frontend hospital.tests schema.
 struct DiagnosticTest {
     string id;
     string name;
-    int durationMinutes;
+    int durationMinutes = 0;
+    int bufferMinutes = 0;
+    bool enabled = true;
 };
 
 struct PatientTestState {
@@ -112,7 +136,22 @@ struct Patient {
     string currentTestId = "";
 };
 
+// [Change 2] TestingCentre expanded. The first block of fields
+// matches the previous layout, so all existing positional
+// initialisers (e.g. {"A1", "X-Ray Room", "A", 10}) keep
+// working — the new fields simply use their defaults.
+//
+// Note about multi-machine support:
+//   The legacy in-memory computeQueue() / handleNextPatient()
+//   still model a centre as a single serving slot. Parallel
+//   scheduling is implemented in the stateless
+//   calculateStatelessQueue() path, which the frontend uses.
+//   machineCount / activeMachines / maintenanceMachines are
+//   stored and validated here so the /api/queue/calculate
+//   request can be built with accurate values.
 struct TestingCentre {
+    // Existing layout — DO NOT reorder these; they are set by
+    // positional aggregate init in ServerState().
     string id;
     string name;
     string testId;
@@ -125,6 +164,15 @@ struct TestingCentre {
 
     long long startedAtMs = 0;
     long long expectedCompletionMs = 0;
+
+    // [Change 2] New configuration fields.
+    int bufferMinutes          = 0;
+    int machineCount           = 1;
+    int activeMachines         = 1;
+    int maintenanceMachines    = 0;
+    int currentActiveTests     = 0;
+    int maxSimultaneousTests   = 1;
+    bool enabled               = true;
 
     bool available() const { return currentPatient.empty(); }
 };
@@ -185,6 +233,7 @@ struct QueueResult {
 
 // ------------------------------------------------------------
 // Stateless calc models (POST /api/queue/calculate)
+// Unchanged from v1.8.0 — already fully dynamic.
 // ------------------------------------------------------------
 
 struct StatelessTest {
@@ -192,6 +241,7 @@ struct StatelessTest {
     string name;
     int durationMinutes = 0;
     int bufferMinutes = 0;
+    bool enabled = true;
 };
 
 struct StatelessCentre {
@@ -277,22 +327,48 @@ public:
 
     int nextPatientNumber = 1;
 
+    // [Change 3] Hospital identity for legacy /api/configuration.
+    // Real hospital name lives in the frontend localStorage;
+    // these are only demo defaults.
+    string hospitalId   = Config::DEFAULT_HOSPITAL_ID;
+    string hospitalName = Config::DEFAULT_HOSPITAL_NAME;
+
     vector<EventLogEntry> eventLog;
     int nextEventId = 1;
 
     ServerState() {
+        // [Change 1] Test defaults now use the expanded struct.
         tests = {
-            {"A", "X-Ray", 10},
-            {"B", "Blood Test", 5},
-            {"C", "Ultrasound", 20},
-            {"D", "CT Scan", 30}
+            {"A", "X-Ray",        10, 5, true},
+            {"B", "Blood Test",    5, 3, true},
+            {"C", "Ultrasound",   20, 5, true},
+            {"D", "CT Scan",      30, 8, true}
         };
-        centres = {
-            {"A1", "X-Ray Room", "A", 10},
-            {"B1", "Blood Test Lab", "B", 5},
-            {"C1", "Ultrasound Room", "C", 20},
-            {"D1", "CT Scan Room", "D", 30}
-        };
+        // [Change 2] Centre defaults use the expanded struct.
+        // Only the first four fields are positional; the rest
+        // pick up defaults (machineCount=1, activeMachines=1,
+        // maxSimultaneousTests=1, enabled=true, etc.).
+        TestingCentre a1;
+        a1.id = "A1"; a1.name = "X-Ray Room";       a1.testId = "A"; a1.durationMinutes = 10;
+        a1.bufferMinutes = 5;  a1.machineCount = 1; a1.activeMachines = 1;
+        a1.maxSimultaneousTests = 1;
+
+        TestingCentre b1;
+        b1.id = "B1"; b1.name = "Blood Test Lab";   b1.testId = "B"; b1.durationMinutes = 5;
+        b1.bufferMinutes = 3;  b1.machineCount = 1; b1.activeMachines = 1;
+        b1.maxSimultaneousTests = 1;
+
+        TestingCentre c1;
+        c1.id = "C1"; c1.name = "Ultrasound Room";  c1.testId = "C"; c1.durationMinutes = 20;
+        c1.bufferMinutes = 5;  c1.machineCount = 1; c1.activeMachines = 1;
+        c1.maxSimultaneousTests = 1;
+
+        TestingCentre d1;
+        d1.id = "D1"; d1.name = "CT Scan Room";     d1.testId = "D"; d1.durationMinutes = 30;
+        d1.bufferMinutes = 8;  d1.machineCount = 1; d1.activeMachines = 1;
+        d1.maxSimultaneousTests = 1;
+
+        centres = { a1, b1, c1, d1 };
     }
 
     bool testExists(const string& id) const {
@@ -741,7 +817,7 @@ bool matchPrefix(const string& path, const string& prefix, string& rest) {
 }
 
 // ------------------------------------------------------------
-// In-memory simulation (unchanged)
+// In-memory simulation (legacy demo mode, single-slot per centre)
 // ------------------------------------------------------------
 
 struct SimPatient {
@@ -1035,31 +1111,22 @@ QueueResult computeQueue(const ServerState& state) {
 }
 
 // ============================================================
-// [v1.8.0 NEW] Stateless capacity-aware queue calculation
-// Mirrors the frontend's calculateQueueLocally() so that
-// whether the C++ backend or the JS fallback runs, the
-// resulting schedule is identical.
+// Stateless capacity-aware queue calculation
+// (unchanged from v1.8.0 — already dynamic + multi-slot)
 // ============================================================
 
 QueueResult calculateStatelessQueue(const StatelessCalcRequest& req) {
     QueueResult result;
 
-    // Per-centre slot availability vector.
-    // Each slot represents one active machine and holds the
-    // earliest minute when that machine becomes free.
     map<string, vector<long>> centreSlots;
 
     for (const auto& c : req.centres) {
         if (!c.enabled) continue;
 
-        // Effective slot count = activeMachines, with sensible
-        // fallbacks to maxSimultaneousTests and then 1.
         int slotCount = c.activeMachines;
         if (slotCount <= 0) slotCount = c.maxSimultaneousTests;
         if (slotCount <= 0) slotCount = 1;
 
-        // Saturate at maxSimultaneousTests when it's a stricter
-        // ceiling than activeMachines (rare but valid).
         if (c.maxSimultaneousTests > 0 &&
             c.maxSimultaneousTests < slotCount) {
             slotCount = c.maxSimultaneousTests;
@@ -1067,9 +1134,6 @@ QueueResult calculateStatelessQueue(const StatelessCalcRequest& req) {
 
         vector<long> slots((size_t)slotCount, 0L);
 
-        // currentActiveTests: administrator-entered starting
-        // workload. Model each as a running test that occupies
-        // its slot for `durationMinutes` (start = 0, end = dur).
         int busySlots = c.currentActiveTests;
         if (busySlots < 0) busySlots = 0;
         if (busySlots > slotCount) busySlots = slotCount;
@@ -1082,7 +1146,6 @@ QueueResult calculateStatelessQueue(const StatelessCalcRequest& req) {
         centreSlots[c.id] = std::move(slots);
     }
 
-    // Build test-id → test lookup for name resolution.
     map<string, const StatelessTest*> testLookup;
     for (const auto& t : req.tests) {
         if (!t.id.empty()) testLookup[t.id] = &t;
@@ -1101,7 +1164,6 @@ QueueResult calculateStatelessQueue(const StatelessCalcRequest& req) {
         for (const auto& ts : p.tests) {
             if (ts.status == "COMPLETED") continue;
 
-            // Skip tests that no centre can handle (same as JS).
             StatelessCentre* chosenCentre = nullptr;
             for (auto& c : req.centres) {
                 if (!c.enabled) continue;
@@ -1120,7 +1182,6 @@ QueueResult calculateStatelessQueue(const StatelessCalcRequest& req) {
             if (slotIt == centreSlots.end() || slotIt->second.empty()) continue;
             vector<long>& slots = slotIt->second;
 
-            // Earliest slot in this centre.
             long earliestSlot = slots[0];
             size_t earliestIdx = 0;
             for (size_t s = 1; s < slots.size(); ++s) {
@@ -1150,11 +1211,9 @@ QueueResult calculateStatelessQueue(const StatelessCalcRequest& req) {
                 sumWaiting += (startTime - patientAvail);
             }
 
-            // Slot occupied until end of test + buffer.
             slots[earliestIdx] = endTime + buf;
             patientAvail = endTime;
 
-            // Emit events.
             QueueEvent startEv;
             startEv.time = (int)startTime;
             startEv.type = "start";
@@ -1171,7 +1230,6 @@ QueueResult calculateStatelessQueue(const StatelessCalcRequest& req) {
             completeEv.testId = ts.testId;
             result.events.push_back(completeEv);
 
-            // Per-patient step.
             QueueStep step;
             step.testId = ts.testId;
             step.centreId = chosenCentre->id;
@@ -1193,7 +1251,6 @@ QueueResult calculateStatelessQueue(const StatelessCalcRequest& req) {
     std::sort(result.events.begin(), result.events.end(),
         [](const QueueEvent& a, const QueueEvent& b) {
             if (a.time != b.time) return a.time < b.time;
-            // "start" before "complete" at the same minute.
             return a.type == "start" && b.type != "start";
         });
 
@@ -1221,6 +1278,7 @@ string handleHealth() {
         "\"serverWallMs\":" + to_string(currentWallMs()) + "}");
 }
 
+// [Change 1] Return bufferMinutes + enabled as well.
 string handleTests(const ServerState& st) {
     ostringstream j;
     j << "{\"success\":true,\"tests\":[";
@@ -1228,12 +1286,15 @@ string handleTests(const ServerState& st) {
         if (i) j << ",";
         j << "{\"id\":\"" << escapeJson(st.tests[i].id) << "\","
           << "\"name\":\"" << escapeJson(st.tests[i].name) << "\","
-          << "\"durationMinutes\":" << st.tests[i].durationMinutes << "}";
+          << "\"durationMinutes\":" << st.tests[i].durationMinutes << ","
+          << "\"bufferMinutes\":" << st.tests[i].bufferMinutes << ","
+          << "\"enabled\":" << (st.tests[i].enabled ? "true" : "false") << "}";
     }
     j << "]}";
     return jsonResponse(200, "OK", j.str());
 }
 
+// [Change 2] Return all expanded centre fields.
 string handleCentres(const ServerState& st) {
     ostringstream j;
     j << "{\"success\":true,\"serverWallMs\":" << currentWallMs() << ",\"centres\":[";
@@ -1250,6 +1311,13 @@ string handleCentres(const ServerState& st) {
           << "\"testId\":\"" << escapeJson(c.testId) << "\","
           << "\"duration\":" << c.durationMinutes << ","
           << "\"durationMinutes\":" << c.durationMinutes << ","
+          << "\"bufferMinutes\":" << c.bufferMinutes << ","
+          << "\"machineCount\":" << c.machineCount << ","
+          << "\"activeMachines\":" << c.activeMachines << ","
+          << "\"maintenanceMachines\":" << c.maintenanceMachines << ","
+          << "\"currentActiveTests\":" << c.currentActiveTests << ","
+          << "\"maxSimultaneousTests\":" << c.maxSimultaneousTests << ","
+          << "\"enabled\":" << (c.enabled ? "true" : "false") << ","
           << "\"available\":" << (c.available() ? "true" : "false") << ","
           << "\"status\":\"" << escapeJson(status) << "\","
           << "\"currentPatient\":"
@@ -1450,10 +1518,8 @@ string handleResetQueue(ServerState& st) {
 }
 
 // ============================================================
-// [v1.8.0 NEW] POST /api/queue/calculate
-// Stateless, capacity-aware queue calculation driven entirely
-// by the caller-supplied hospital snapshot. Nothing from the
-// request is persisted.
+// POST /api/queue/calculate  (stateless, primary new path)
+// Unchanged from v1.8.0 — fully dynamic.
 // ============================================================
 
 string handleStatelessQueueCalculate(const string& body) {
@@ -1478,7 +1544,6 @@ string handleStatelessQueueCalculate(const string& body) {
 
     StatelessCalcRequest req;
 
-    // -------- Tests --------
     if (hospital.has("tests") && hospital.at("tests").isArr()) {
         for (const auto& t : hospital.at("tests").arr) {
             if (!t.isObj()) continue;
@@ -1491,6 +1556,9 @@ string handleStatelessQueueCalculate(const string& body) {
             if (t.has("bufferMinutes") && t.at("bufferMinutes").isNum()) {
                 st.bufferMinutes = (int)t.at("bufferMinutes").nval;
             }
+            if (t.has("enabled") && t.at("enabled").isBool()) {
+                st.enabled = t.at("enabled").bval;
+            }
             if (st.durationMinutes <= 0) {
                 return errorResponse(400, "Bad Request",
                     "Test '" + st.id + "' has invalid durationMinutes");
@@ -1499,7 +1567,6 @@ string handleStatelessQueueCalculate(const string& body) {
         }
     }
 
-    // -------- Centres --------
     if (hospital.has("centres") && hospital.at("centres").isArr()) {
         for (const auto& c : hospital.at("centres").arr) {
             if (!c.isObj()) continue;
@@ -1543,7 +1610,6 @@ string handleStatelessQueueCalculate(const string& body) {
         }
     }
 
-    // -------- Patients --------
     if (hospital.has("patients") && hospital.at("patients").isArr()) {
         for (const auto& p : hospital.at("patients").arr) {
             if (!p.isObj()) continue;
@@ -1566,7 +1632,6 @@ string handleStatelessQueueCalculate(const string& body) {
         }
     }
 
-    // -------- Validate --------
     if (req.tests.empty()) {
         return errorResponse(400, "Bad Request",
             "Configuration must include at least one test");
@@ -1576,7 +1641,6 @@ string handleStatelessQueueCalculate(const string& body) {
             "Configuration must include at least one centre");
     }
 
-    // Cross-check: every referenced test must exist.
     set<string> knownTestIds;
     for (const auto& t : req.tests) knownTestIds.insert(t.id);
     for (const auto& c : req.centres) {
@@ -1588,10 +1652,8 @@ string handleStatelessQueueCalculate(const string& body) {
         }
     }
 
-    // -------- Calculate --------
     QueueResult r = calculateStatelessQueue(req);
 
-    // Lookup maps for names.
     map<string, string> testNames;
     for (const auto& t : req.tests) testNames[t.id] = t.name;
     map<string, string> centreNames;
@@ -1606,7 +1668,6 @@ string handleStatelessQueueCalculate(const string& body) {
         return it != centreNames.end() ? it->second : id;
     };
 
-    // -------- Serialise --------
     ostringstream j;
     j << "{\"success\":true,"
       << "\"computed\":" << (req.patients.empty() ? "false" : "true") << ","
@@ -1889,16 +1950,23 @@ string handleCompleteTest(ServerState& st, const string& body) {
     return jsonResponse(200, "OK", j.str());
 }
 
+// [Change 3] Return actual configured state (no hard-coded
+// machineCount:1 or enabled:true, and hospital name comes from
+// ServerState, not Config::APP_NAME).
 string handleGetConfiguration(const ServerState& st) {
     ostringstream j;
     j << "{\"success\":true,"
-      << "\"hospitalName\":\"" << escapeJson(Config::APP_NAME) << "\","
+      << "\"hospitalId\":\"" << escapeJson(st.hospitalId) << "\","
+      << "\"hospitalName\":\"" << escapeJson(st.hospitalName) << "\","
       << "\"tests\":[";
     for (size_t i = 0; i < st.tests.size(); ++i) {
+        const auto& t = st.tests[i];
         if (i) j << ",";
-        j << "{\"id\":\"" << escapeJson(st.tests[i].id) << "\","
-          << "\"name\":\"" << escapeJson(st.tests[i].name) << "\","
-          << "\"durationMinutes\":" << st.tests[i].durationMinutes << "}";
+        j << "{\"id\":\"" << escapeJson(t.id) << "\","
+          << "\"name\":\"" << escapeJson(t.name) << "\","
+          << "\"durationMinutes\":" << t.durationMinutes << ","
+          << "\"bufferMinutes\":" << t.bufferMinutes << ","
+          << "\"enabled\":" << (t.enabled ? "true" : "false") << "}";
     }
     j << "],\"centres\":[";
     for (size_t i = 0; i < st.centres.size(); ++i) {
@@ -1907,14 +1975,24 @@ string handleGetConfiguration(const ServerState& st) {
         j << "{\"id\":\"" << escapeJson(c.id) << "\","
           << "\"name\":\"" << escapeJson(c.name) << "\","
           << "\"testId\":\"" << escapeJson(c.testId) << "\","
-          << "\"machineCount\":1,"
+          << "\"testIds\":[\"" << escapeJson(c.testId) << "\"],"
           << "\"durationMinutes\":" << c.durationMinutes << ","
-          << "\"enabled\":true}";
+          << "\"bufferMinutes\":" << c.bufferMinutes << ","
+          << "\"machineCount\":" << c.machineCount << ","
+          << "\"totalMachines\":" << c.machineCount << ","
+          << "\"activeMachines\":" << c.activeMachines << ","
+          << "\"maintenanceMachines\":" << c.maintenanceMachines << ","
+          << "\"currentActiveTests\":" << c.currentActiveTests << ","
+          << "\"maxSimultaneousTests\":" << c.maxSimultaneousTests << ","
+          << "\"enabled\":" << (c.enabled ? "true" : "false") << "}";
     }
     j << "]}";
     return jsonResponse(200, "OK", j.str());
 }
 
+// [Change 4] Accept and store the expanded fields. The old
+// machineCount==1 restriction is gone. New fields default
+// sensibly if omitted.
 string handleImportConfiguration(ServerState& st, const string& body) {
     if (body.empty())
         return errorResponse(400, "Bad Request", "Request body is empty");
@@ -1938,6 +2016,10 @@ string handleImportConfiguration(ServerState& st, const string& body) {
         }
     }
 
+    // Optional hospital identity
+    string incomingHospitalId = root.has("hospitalId") ? root.at("hospitalId").asStr("") : "";
+    string incomingHospitalName = root.has("hospitalName") ? root.at("hospitalName").asStr("") : "";
+
     if (!root.has("tests") || !root.at("tests").isArr() ||
         root.at("tests").arr.empty()) {
         return errorResponse(400, "Bad Request", "Configuration must include a non-empty 'tests' array");
@@ -1954,25 +2036,31 @@ string handleImportConfiguration(ServerState& st, const string& body) {
         if (!t.isObj())
             return errorResponse(400, "Bad Request", "Each test must be an object");
 
-        string id = t.has("id") ? t.at("id").asStr("") : "";
-        string name = t.has("name") ? t.at("name").asStr("") : "";
-        int dur = 0;
-        if (t.has("durationMinutes") && t.at("durationMinutes").isNum()) {
-            dur = (int)t.at("durationMinutes").nval;
-        }
+        DiagnosticTest nt;
+        nt.id = t.has("id") ? t.at("id").asStr("") : "";
+        nt.name = t.has("name") ? t.at("name").asStr("") : "";
+        if (t.has("durationMinutes") && t.at("durationMinutes").isNum())
+            nt.durationMinutes = (int)t.at("durationMinutes").nval;
+        if (t.has("bufferMinutes") && t.at("bufferMinutes").isNum())
+            nt.bufferMinutes = (int)t.at("bufferMinutes").nval;
+        if (t.has("enabled") && t.at("enabled").isBool())
+            nt.enabled = t.at("enabled").bval;
 
-        if (id.empty())
+        if (nt.id.empty())
             return errorResponse(400, "Bad Request", "Test 'id' is required");
-        if (name.empty())
-            return errorResponse(400, "Bad Request", "Test 'name' is required (id=" + id + ")");
-        if (dur <= 0)
+        if (nt.name.empty())
+            return errorResponse(400, "Bad Request", "Test 'name' is required (id=" + nt.id + ")");
+        if (nt.durationMinutes <= 0)
             return errorResponse(400, "Bad Request",
-                "Test duration must be positive (id=" + id + ")");
-        if (testIds.count(id))
-            return errorResponse(400, "Bad Request", "Duplicate test id: " + id);
+                "Test duration must be positive (id=" + nt.id + ")");
+        if (nt.bufferMinutes < 0)
+            return errorResponse(400, "Bad Request",
+                "Test buffer cannot be negative (id=" + nt.id + ")");
+        if (testIds.count(nt.id))
+            return errorResponse(400, "Bad Request", "Duplicate test id: " + nt.id);
 
-        testIds.insert(id);
-        newTests.push_back({id, name, dur});
+        testIds.insert(nt.id);
+        newTests.push_back(std::move(nt));
     }
 
     vector<TestingCentre> newCentres;
@@ -1982,66 +2070,94 @@ string handleImportConfiguration(ServerState& st, const string& body) {
         if (!c.isObj())
             return errorResponse(400, "Bad Request", "Each centre must be an object");
 
-        if (c.has("enabled") && c.at("enabled").isBool() &&
-            !c.at("enabled").bval) {
-            continue;
-        }
+        // Skip explicitly disabled entries only if they also lack an id
+        bool rawEnabled = true;
+        if (c.has("enabled") && c.at("enabled").isBool() && !c.at("enabled").bval)
+            rawEnabled = false;
 
-        string id = c.has("id") ? c.at("id").asStr("") : "";
-        string name = c.has("name") ? c.at("name").asStr("") : "";
-        string testId = c.has("testId") ? c.at("testId").asStr("") : "";
-        int dur = 0;
-        if (c.has("durationMinutes") && c.at("durationMinutes").isNum()) {
-            dur = (int)c.at("durationMinutes").nval;
-        }
-
-        if (id.empty())
-            return errorResponse(400, "Bad Request", "Centre 'id' is required");
-        if (name.empty())
-            return errorResponse(400, "Bad Request", "Centre 'name' is required (id=" + id + ")");
-        if (testId.empty())
-            return errorResponse(400, "Bad Request", "Centre 'testId' is required (id=" + id + ")");
-        if (!testIds.count(testId))
-            return errorResponse(400, "Bad Request",
-                "Centre '" + id + "' references unknown test '" + testId + "'");
-        if (dur <= 0)
-            return errorResponse(400, "Bad Request",
-                "Centre duration must be positive (id=" + id + ")");
-        if (centreIds.count(id))
-            return errorResponse(400, "Bad Request", "Duplicate centre id: " + id);
-
-        if (c.has("machineCount") && c.at("machineCount").isNum()) {
-            int mc = (int)c.at("machineCount").nval;
-            if (mc != 1) {
-                return errorResponse(400, "Bad Request",
-                    "Centre '" + id + "' has machineCount=" + to_string(mc) +
-                    ". Only machineCount=1 is supported.");
-            }
-        }
-
-        centreIds.insert(id);
         TestingCentre nc;
-        nc.id = id;
-        nc.name = name;
-        nc.testId = testId;
-        nc.durationMinutes = dur;
-        newCentres.push_back(nc);
-    }
+        nc.id = c.has("id") ? c.at("id").asStr("") : "";
+        nc.name = c.has("name") ? c.at("name").asStr("") : "";
+        nc.testId = c.has("testId") ? c.at("testId").asStr("") : "";
+        if (c.has("durationMinutes") && c.at("durationMinutes").isNum())
+            nc.durationMinutes = (int)c.at("durationMinutes").nval;
+        if (c.has("bufferMinutes") && c.at("bufferMinutes").isNum())
+            nc.bufferMinutes = (int)c.at("bufferMinutes").nval;
 
-    if (newCentres.empty())
-        return errorResponse(400, "Bad Request",
-            "Configuration must contain at least one enabled centre");
+        // [Change 2] New fields
+        if (c.has("machineCount") && c.at("machineCount").isNum())
+            nc.machineCount = (int)c.at("machineCount").nval;
+        if (c.has("totalMachines") && c.at("totalMachines").isNum())
+            nc.machineCount = (int)c.at("totalMachines").nval;
+        if (c.has("activeMachines") && c.at("activeMachines").isNum())
+            nc.activeMachines = (int)c.at("activeMachines").nval;
+        if (c.has("maintenanceMachines") && c.at("maintenanceMachines").isNum())
+            nc.maintenanceMachines = (int)c.at("maintenanceMachines").nval;
+        if (c.has("currentActiveTests") && c.at("currentActiveTests").isNum())
+            nc.currentActiveTests = (int)c.at("currentActiveTests").nval;
+        if (c.has("maxSimultaneousTests") && c.at("maxSimultaneousTests").isNum())
+            nc.maxSimultaneousTests = (int)c.at("maxSimultaneousTests").nval;
 
-    for (auto& nc : newCentres) {
+        nc.enabled = rawEnabled;
+        if (c.has("status") && c.at("status").isStr()) {
+            const string& s = c.at("status").sval;
+            if (s == "INACTIVE" || s == "Inactive" || s == "inactive")
+                nc.enabled = false;
+        }
+
+        if (nc.id.empty())
+            return errorResponse(400, "Bad Request", "Centre 'id' is required");
+        if (nc.name.empty())
+            return errorResponse(400, "Bad Request", "Centre 'name' is required (id=" + nc.id + ")");
+        if (nc.testId.empty())
+            return errorResponse(400, "Bad Request", "Centre 'testId' is required (id=" + nc.id + ")");
+        if (!testIds.count(nc.testId))
+            return errorResponse(400, "Bad Request",
+                "Centre '" + nc.id + "' references unknown test '" + nc.testId + "'");
+        if (nc.durationMinutes <= 0)
+            return errorResponse(400, "Bad Request",
+                "Centre duration must be positive (id=" + nc.id + ")");
+        if (nc.bufferMinutes < 0)
+            return errorResponse(400, "Bad Request",
+                "Centre buffer cannot be negative (id=" + nc.id + ")");
+        if (nc.machineCount < 1)
+            return errorResponse(400, "Bad Request",
+                "Centre machineCount must be >= 1 (id=" + nc.id + ")");
+        if (nc.activeMachines < 0 || nc.maintenanceMachines < 0)
+            return errorResponse(400, "Bad Request",
+                "Centre machine counts cannot be negative (id=" + nc.id + ")");
+        if (nc.activeMachines + nc.maintenanceMachines > nc.machineCount)
+            return errorResponse(400, "Bad Request",
+                "Centre '" + nc.id + "': activeMachines + maintenanceMachines exceed machineCount");
+        if (nc.maxSimultaneousTests < 1)
+            return errorResponse(400, "Bad Request",
+                "Centre maxSimultaneousTests must be >= 1 (id=" + nc.id + ")");
+        if (nc.currentActiveTests < 0)
+            return errorResponse(400, "Bad Request",
+                "Centre currentActiveTests cannot be negative (id=" + nc.id + ")");
+        if (centreIds.count(nc.id))
+            return errorResponse(400, "Bad Request", "Duplicate centre id: " + nc.id);
+
+        // Preserve historical counters if the centre already exists
         const TestingCentre* old = st.findCentre(nc.id);
         if (old) {
             nc.busyMinutes = old->busyMinutes;
             nc.completedCount = old->completedCount;
         }
+
+        centreIds.insert(nc.id);
+        newCentres.push_back(std::move(nc));
     }
 
+    if (newCentres.empty())
+        return errorResponse(400, "Bad Request",
+            "Configuration must contain at least one centre");
+
+    // Commit only after full validation succeeds.
     st.tests = std::move(newTests);
     st.centres = std::move(newCentres);
+    if (!incomingHospitalId.empty())   st.hospitalId   = incomingHospitalId;
+    if (!incomingHospitalName.empty()) st.hospitalName = incomingHospitalName;
 
     return handleGetConfiguration(st);
 }
@@ -2090,12 +2206,7 @@ string routeRequest(const HttpRequest& req, ServerState& st) {
 
     if (m == "POST") {
         if (p == "/api/patients")        return handleAddPatient(st, req.body);
-
-        // [v1.8.0] Stateless queue calculation — must be checked
-        // before /api/queue would ever match a longer path, but
-        // here it's a distinct POST route anyway.
         if (p == "/api/queue/calculate") return handleStatelessQueueCalculate(req.body);
-
         if (p == "/api/queue/reset")     return handleResetQueue(st);
         if (p == "/api/tests/complete")  return handleCompleteTest(st, req.body);
         if (p == "/api/configuration")   return handleImportConfiguration(st, req.body);
@@ -2192,7 +2303,7 @@ int main() {
          << "[API] DELETE /api/patients/{id}" << endl
          << "[API] POST   /api/tests/complete" << endl
          << "[API] GET    /api/queue" << endl
-         << "[API] POST   /api/queue/calculate    (v1.8.0 stateless)" << endl
+         << "[API] POST   /api/queue/calculate    (stateless)" << endl
          << "[API] POST   /api/queue/reset" << endl
          << "[API] GET    /api/events             (event history)" << endl
          << "[API] GET    /api/configuration" << endl
